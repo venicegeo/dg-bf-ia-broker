@@ -21,6 +21,35 @@
 
 package main
 
+import (
+	"fmt"
+
+	"github.com/spf13/cobra"
+)
+
 func main() {
 	Execute()
+}
+
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number of the Broker CLI",
+	Long:  "",
+	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println("bf-ia-broker v0.1 -- HEAD")
+	},
+}
+
+// Execute adds all child commands to the root command PlanetCmd and sets flags
+// appropriately.
+func Execute() {
+	rootCommand.AddCommand(serveCmd)
+	rootCommand.AddCommand(versionCmd)
+	rootCommand.Execute()
+}
+
+var rootCommand = &cobra.Command{
+	Use: "bf-ia-broker",
+	Long: `
+bf-ia-broker is a command-line interface for Beachfront Image Archive Brokering.`,
 }

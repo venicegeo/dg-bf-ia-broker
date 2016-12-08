@@ -1,4 +1,4 @@
 #! /bin/bash
 
-APP=pzsvc-image-catalog
+APP=bf-ia-broker
 EXT=tgz

@@ -138,7 +138,7 @@
             "id": "github.com.venicegeo.geojson-go.geojson.Feature",
             "properties": {
                 "bbox": {
-                    "type": "BoundingBox",
+                    "type": "github.com.venicegeo.geojson-go.geojson.BoundingBox",
                     "description": "",
                     "items": {},
                     "format": ""
