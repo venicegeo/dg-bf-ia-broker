@@ -1,0 +1,17 @@
+{
+    "apiVersion": "1.0.0",
+    "swaggerVersion": "1.2",
+    "basePath": "{{.}}",
+    "apis": [
+        {
+            "path": "/planet",
+            "description": "Planet Labs API"
+        }
+    ],
+    "info": {
+        "title": "Beachfront Image Archive Broker",
+        "description": "A broker for image archives",
+        "contact": "jeffy@imagemattersllc.com",
+        "license": "Apache"
+    }
+}
