@@ -18,15 +18,15 @@ go version
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install
 
-go get -v github.com/venicegeo/pzsvc-image-catalog/...
+go get -v github.com/venicegeo/bf-ia-broker/...
 
-cd $GOPATH/src/github.com/venicegeo/pzsvc-image-catalog
+cd $GOPATH/src/github.com/venicegeo/bf-ia-broker
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=catalog.cov github.com/venicegeo/pzsvc-image-catalog/catalog
-go test -v -coverprofile=cmd.cov github.com/venicegeo/pzsvc-image-catalog/cmd
-cp ./catalog.cov $root/catalog.cov
-cp ./cmd.cov $root/cmd.cov
+go test -v -coverprofile=planet.cov github.com/venicegeo/bf-ia-broker/planet
+go test -v -coverprofile=tides.cov github.com/venicegeo/bf-ia-broker/tides
+cp ./planet.cov $root/planet.cov
+cp ./tides.cov $root/tides.cov
 
 
 # lint
@@ -52,7 +52,7 @@ cd $root
 cp $GOPATH/bin/$APP ./$APP.bin
 tar cvzf $APP.$EXT \
     $APP.bin \
-    cmd.cov \
-	catalog.cov \
+    planet.cov \
+	tides.cov \
     lint.txt
 tar tzf $APP.$EXT
