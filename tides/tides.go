@@ -17,15 +17,24 @@ package tides
 import (
 	"log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/venicegeo/geojson-go/geojson"
 	"github.com/venicegeo/pzsvc-lib"
 )
 
+var tidesURL string
+
+func init() {
+	tidesURL = os.Getenv("BF_TIDE_PREDICTION_URL")
+	if tidesURL == "" {
+		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
+	}
+}
+
 // Context is the context for this operation
 type Context struct {
-	TidesURL string
 }
 
 type tideIn struct {
@@ -107,7 +116,7 @@ func GetTides(fc *geojson.FeatureCollection, context Context) (*geojson.FeatureC
 	)
 	tin = toTidesIn(fc.Features)
 	features := make([]*geojson.Feature, len(fc.Features))
-	if _, err = pzsvc.ReqByObjJSON("POST", context.TidesURL, "", tin, &tout); err == nil {
+	if _, err = pzsvc.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err == nil {
 		for inx, tideObj := range tout.Locations {
 			currentScene = tin.Map[tideObj.Dtg]
 			currentScene.Properties["CurrentTide"] = tideObj.Results.CurrTide

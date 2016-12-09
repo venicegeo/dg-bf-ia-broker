@@ -29,12 +29,18 @@ import (
 	"github.com/venicegeo/pzsvc-lib"
 )
 
-// TODO: pull from environment
-const baseURLString = "https://api.planet.com/"
+var baseURLString string
+
+func init() {
+	baseURLString = os.Getenv("PL_API_URL")
+	if baseURLString == "" {
+		baseURLString = "https://api.planet.com/"
+	}
+}
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
-	TidesURL  string
+	Tides     bool
 	PlanetKey string
 }
 
@@ -187,8 +193,8 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 	fc = fci.(*geojson.FeatureCollection)
 	body, err = geojson.Write(fc)
 	fc = transformFeatureCollection(fc)
-	if context.TidesURL != "" {
-		context := tides.Context{TidesURL: context.TidesURL}
+	if context.Tides {
+		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
 			return "", err
 		}

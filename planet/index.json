@@ -62,6 +62,18 @@
                             "required": false,
                             "minimum": 0,
                             "maximum": 0
+                        },
+                        {
+                            "paramType": "query",
+                            "name": "tides",
+                            "description": "True: incorporate tide prediction in the output",
+                            "dataType": "bool",
+                            "type": "bool",
+                            "format": "",
+                            "allowMultiple": false,
+                            "required": false,
+                            "minimum": 0,
+                            "maximum": 0
                         }
                     ],
                     "responseMessages": [

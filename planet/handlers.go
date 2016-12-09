@@ -33,6 +33,7 @@ const noPlanetKey = "This operation requires a Planet Labs API key."
 // @Param   bbox            query   string  false        "The bounding box, as a GeoJSON Bounding box (x1,y1,x2,y2)"
 // @Param   acquiredDate    query   string  false        "The minimum (earliest) acquired date, as RFC 3339"
 // @Param   maxAcquiredDate query   string  false        "The maximum acquired date, as RFC 3339"
+// @Param   tides           query   bool    false        "True: incorporate tide prediction in the output"
 // @Success 200 {object}  geojson.FeatureCollection
 // @Failure 400 {object}  string
 // @Router /planet/discover [get]
@@ -40,7 +41,6 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		responseString string
 		err            error
-		tidesURL       string
 		planetKey      string
 		bbox           geojson.BoundingBox
 	)
@@ -49,9 +49,6 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	tides, _ := strconv.ParseBool(request.FormValue("tides"))
-	if tides {
-		tidesURL = request.FormValue("tidesURL")
-	}
 	planetKey = request.FormValue("PL_API_KEY")
 	if planetKey == "" {
 		http.Error(writer, noPlanetKey, http.StatusBadRequest)
@@ -70,7 +67,7 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 	options := SearchOptions{
 		Bbox: bbox}
 	context := Context{
-		TidesURL:  tidesURL,
+		Tides:     tides,
 		PlanetKey: planetKey}
 
 	if responseString, err = GetScenes(options, context); err == nil {
@@ -86,7 +83,7 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 // @Description activates scenes from Planet Labs
 // @Accept  plain
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
-// @Param   id              path   string  true         "Planet Labs image ID"
+// @Param   id              path    string  true         "Planet Labs image ID"
 // @Success 200 {object}  string
 // @Failure 400 {object}  string
 // @Router /planet/discover [get]

@@ -29,7 +29,6 @@ func TestTides(t *testing.T) {
 		fc      *geojson.FeatureCollection
 		bytes   []byte
 	)
-	context.TidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
 	if fci, err = geojson.ParseFile("test/fc.geojson"); err != nil {
 		t.Errorf("Expected to load file but received: %v", err.Error())
 	}
