@@ -180,15 +180,15 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
 	if body, err = json.Marshal(req); err != nil {
-		return "", err
+		return "", pzsvc.TraceErr(err)
 	}
 	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
-		return "", err
+		return "", pzsvc.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if fci, err = geojson.Parse(body); err != nil {
-		return "", err
+		return "", pzsvc.TraceErr(err)
 	}
 	fc = fci.(*geojson.FeatureCollection)
 	body, err = geojson.Write(fc)
@@ -196,7 +196,7 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 	if context.Tides {
 		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
-			return "", err
+			return "", pzsvc.TraceErr(err)
 		}
 	}
 	body, err = geojson.Write(fc)
@@ -238,12 +238,12 @@ func Activate(id string, context Context) ([]byte, error) {
 		assets   Assets
 	)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/REOrthoTile/items/" + id + "/assets/"}, context); err != nil {
-		return nil, err
+		return nil, pzsvc.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &assets); err != nil {
-		return nil, err
+		return nil, pzsvc.TraceErr(err)
 	}
 	if assets.Analytic.Status == "inactive" {
 		go doRequest(doRequestInput{method: "GET", inputURL: assets.Analytic.Links.Activate}, context)

@@ -63,7 +63,6 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 		}
 	}
 
-	planetKey = request.FormValue("PL_API_KEY")
 	options := SearchOptions{
 		Bbox: bbox}
 	context := Context{

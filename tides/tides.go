@@ -29,6 +29,7 @@ var tidesURL string
 func init() {
 	tidesURL = os.Getenv("BF_TIDE_PREDICTION_URL")
 	if tidesURL == "" {
+		log.Printf("Didn't get Tide Prediction URL from the environment. Using default.")
 		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
 	}
 }
