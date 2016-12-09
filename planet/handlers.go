@@ -30,6 +30,7 @@ const noPlanetKey = "This operation requires a Planet Labs API key."
 // @Description discovers scenes from Planet Labs
 // @Accept  plain
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
+// @Param   itemType        query   string  false        "Planet Labs Item Type, defaults to REOrthoTile"
 // @Param   bbox            query   string  false        "The bounding box, as a GeoJSON Bounding box (x1,y1,x2,y2)"
 // @Param   acquiredDate    query   string  false        "The minimum (earliest) acquired date, as RFC 3339"
 // @Param   maxAcquiredDate query   string  false        "The maximum acquired date, as RFC 3339"
@@ -42,6 +43,7 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 		responseString string
 		err            error
 		planetKey      string
+		itemType       string
 		bbox           geojson.BoundingBox
 	)
 	if pzsvc.Preflight(writer, request) {
@@ -55,6 +57,11 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	itemType = request.FormValue("itemType")
+	if itemType == "" {
+		itemType = "REOrthoTile"
+	}
+
 	bboxString := request.FormValue("bbox")
 	if bboxString != "" {
 		if bbox, err = geojson.NewBoundingBox(bboxString); err != nil {
@@ -66,6 +73,7 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 	options := SearchOptions{
 		Bbox: bbox}
 	context := Context{
+		ItemType:  itemType,
 		Tides:     tides,
 		PlanetKey: planetKey}
 
@@ -82,27 +90,33 @@ func DiscoverPlanetHandler(writer http.ResponseWriter, request *http.Request) {
 // @Description activates scenes from Planet Labs
 // @Accept  plain
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
+// @Param   itemType        query   string  false        "Planet Labs Item Type, defaults to REOrthoTile"
 // @Param   id              path    string  true         "Planet Labs image ID"
 // @Success 200 {object}  string
 // @Failure 400 {object}  string
 // @Router /planet/discover [get]
-func ActivatePlanetHandler(writer http.ResponseWriter, r *http.Request) {
+func ActivatePlanetHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err     error
 		context Context
 		result  []byte
 	)
-	vars := mux.Vars(r)
+	vars := mux.Vars(request)
 	id := vars["id"]
 	if id == "" {
 		http.Error(writer, "This operation requires a Planet Labs image ID.", http.StatusBadRequest)
 		return
 	}
-	context.PlanetKey = r.FormValue("PL_API_KEY")
+	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
 		http.Error(writer, "This operation requires a Planet Labs API key.", http.StatusBadRequest)
 		return
+	}
+
+	context.ItemType = request.FormValue("itemType")
+	if context.ItemType == "" {
+		context.ItemType = "REOrthoTile"
 	}
 
 	if result, err = Activate(id, context); err == nil {

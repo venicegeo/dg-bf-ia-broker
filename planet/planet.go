@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -40,6 +41,7 @@ func init() {
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
+	ItemType  string
 	Tides     bool
 	PlanetKey string
 }
@@ -115,17 +117,8 @@ func doRequest(input doRequestInput, context Context) (*http.Response, error) {
 		request.Header.Set("Content-Type", input.contentType)
 	}
 
-	request.Header.Set("Authorization", "Basic "+getPlanetAuth(context.PlanetKey))
+	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
 	return pzsvc.HTTPClient().Do(request)
-}
-
-func getPlanetAuth(key string) string {
-	var result string
-	if key == "" {
-		key = os.Getenv("PL_API_KEY")
-	}
-	result = base64.StdEncoding.EncodeToString([]byte(key + ":"))
-	return result
 }
 
 // Assets represents the assets available for a scene
@@ -162,10 +155,9 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 		body     []byte
 		req      request
 		fc       *geojson.FeatureCollection
-		fci      interface{}
 	)
 
-	req.ItemTypes = append(req.ItemTypes, "REOrthoTile")
+	req.ItemTypes = append(req.ItemTypes, context.ItemType)
 	req.Filter.Type = "AndFilter"
 	req.Filter.Config = make([]interface{}, 0)
 	if options.Bbox != nil {
@@ -187,12 +179,9 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
-	if fci, err = geojson.Parse(body); err != nil {
+	if fc, err = transformSRBody(body); err != nil {
 		return "", pzsvc.TraceErr(err)
 	}
-	fc = fci.(*geojson.FeatureCollection)
-	body, err = geojson.Write(fc)
-	fc = transformFeatureCollection(fc)
 	if context.Tides {
 		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
@@ -203,18 +192,26 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 	return string(body), err
 }
 
-func transformFeatureCollection(fc *geojson.FeatureCollection) *geojson.FeatureCollection {
+// Transforms search results into a FeatureCollection for later use
+func transformSRBody(body []byte) (*geojson.FeatureCollection, error) {
 	var (
 		result *geojson.FeatureCollection
+		fc     *geojson.FeatureCollection
+		fci    interface{}
+		err    error
+		ok     bool
 	)
+	if fci, err = geojson.Parse(body); err != nil {
+		return nil, pzsvc.TraceErr(err)
+	}
+	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
+		return nil, fmt.Errorf("Expected a FeatureCollection and got a %t.", fci)
+	}
 	features := make([]*geojson.Feature, len(fc.Features))
 	for inx, curr := range fc.Features {
 		properties := make(map[string]interface{})
 		properties["cloudCover"] = curr.Properties["cloud_cover"].(float64)
 		id := curr.IDStr()
-		// properties["path"] = url + "index.html"
-		// properties["thumb_large"] = url + id + "_thumb_large.jpg"
-		// properties["thumb_small"] = url + id + "_thumb_small.jpg"
 		properties["resolution"] = curr.Properties["gsd"].(float64)
 		adString := curr.Properties["acquired"].(string)
 		properties["acquiredDate"] = adString
@@ -225,7 +222,7 @@ func transformFeatureCollection(fc *geojson.FeatureCollection) *geojson.FeatureC
 		features[inx] = feature
 	}
 	result = geojson.NewFeatureCollection(features)
-	return result
+	return result, nil
 }
 
 // Activate returns the status of the analytic asset and
@@ -237,7 +234,7 @@ func Activate(id string, context Context) ([]byte, error) {
 		body     []byte
 		assets   Assets
 	)
-	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/REOrthoTile/items/" + id + "/assets/"}, context); err != nil {
+	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + id + "/assets/"}, context); err != nil {
 		return nil, pzsvc.TraceErr(err)
 	}
 	defer response.Body.Close()

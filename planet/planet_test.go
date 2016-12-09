@@ -30,6 +30,7 @@ func TestPlanet(t *testing.T) {
 	)
 
 	context.PlanetKey = os.Getenv("PL_API_KEY")
+	context.ItemType = "REOrthoTile"
 
 	body := `{ 
    "item_types":[  
@@ -68,6 +69,7 @@ func TestPlanet(t *testing.T) {
 	}
 
 	// Test 5 = Tides
+	context.Tides = true
 	if _, err = GetScenes(options, context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
@@ -76,10 +78,10 @@ func TestPlanet(t *testing.T) {
 func TestActivation(t *testing.T) {
 	var (
 		context Context
-		// response []byte
-		err error
+		err     error
 	)
 	context.PlanetKey = os.Getenv("PL_API_KEY")
+	context.ItemType = "REOrthoTile"
 	id := "20161203_021824_5462311_RapidEye-1"
 	if _, err = Activate(id, context); err != nil {
 		t.Errorf("Failed to activate; received: %v", err.Error())
