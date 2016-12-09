@@ -19,7 +19,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -92,7 +91,8 @@ func doRequest(input doRequestInput, context Context) (*http.Response, error) {
 		inputURL  string
 		err       error
 	)
-	if !strings.Contains(input.inputURL, baseURLString) {
+	inputURL = input.inputURL
+	if !strings.Contains(inputURL, baseURLString) {
 		baseURL, _ := url.Parse(baseURLString)
 		parsedRelativeURL, _ := url.Parse(input.inputURL)
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
@@ -240,7 +240,6 @@ func Activate(id string, context Context) ([]byte, error) {
 		return nil, err
 	}
 	if assets.Analytic.Status == "inactive" {
-		log.Printf("Attempting to activate image %v.", id)
 		go doRequest(doRequestInput{method: "GET", inputURL: assets.Analytic.Links.Activate}, context)
 	}
 	return json.Marshal(assets.Analytic)
