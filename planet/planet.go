@@ -147,8 +147,8 @@ type Links struct {
 	Type     string `json:"type"`
 }
 
-// GetScenes returns a string containing the scenes requested
-func GetScenes(options SearchOptions, context Context) (string, error) {
+// GetScenes returns a FeatureCollection containing the scenes requested
+func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollection, error) {
 	var (
 		err      error
 		response *http.Response
@@ -172,24 +172,23 @@ func GetScenes(options SearchOptions, context Context) (string, error) {
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
 	if body, err = json.Marshal(req); err != nil {
-		return "", pzsvc.TraceErr(err)
+		return nil, pzsvc.TraceErr(err)
 	}
 	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
-		return "", pzsvc.TraceErr(err)
+		return nil, pzsvc.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if fc, err = transformSRBody(body); err != nil {
-		return "", pzsvc.TraceErr(err)
+		return nil, pzsvc.TraceErr(err)
 	}
 	if context.Tides {
 		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
-			return "", pzsvc.TraceErr(err)
+			return nil, pzsvc.TraceErr(err)
 		}
 	}
-	body, err = geojson.Write(fc)
-	return string(body), err
+	return fc, nil
 }
 
 // Transforms search results into a FeatureCollection for later use
@@ -205,36 +204,46 @@ func transformSRBody(body []byte) (*geojson.FeatureCollection, error) {
 		return nil, pzsvc.TraceErr(err)
 	}
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
-		return nil, fmt.Errorf("Expected a FeatureCollection and got a %t.", fci)
+		return nil, fmt.Errorf("Expected a FeatureCollection and got %v.", string(body))
 	}
 	features := make([]*geojson.Feature, len(fc.Features))
 	for inx, curr := range fc.Features {
-		properties := make(map[string]interface{})
-		properties["cloudCover"] = curr.Properties["cloud_cover"].(float64)
-		id := curr.IDStr()
-		properties["resolution"] = curr.Properties["gsd"].(float64)
-		adString := curr.Properties["acquired"].(string)
-		properties["acquiredDate"] = adString
-		properties["fileFormat"] = "geotiff"
-		properties["sensorName"] = curr.Properties["satellite_id"].(string)
-		feature := geojson.NewFeature(curr.Geometry, id, properties)
-		feature.Bbox = curr.ForceBbox()
-		features[inx] = feature
+		features[inx] = transformSRFeature(curr)
 	}
 	result = geojson.NewFeatureCollection(features)
 	return result, nil
 }
 
-// Activate returns the status of the analytic asset and
+func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
+	properties := make(map[string]interface{})
+	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64)
+	id := feature.IDStr()
+	properties["resolution"] = feature.Properties["gsd"].(float64)
+	adString := feature.Properties["acquired"].(string)
+	properties["acquiredDate"] = adString
+	properties["fileFormat"] = "geotiff"
+	properties["sensorName"] = feature.Properties["satellite_id"].(string)
+	result := geojson.NewFeature(feature.Geometry, id, properties)
+	result.Bbox = result.ForceBbox()
+	return result
+}
+
+// AssetOptions are the options for the Asset func
+type AssetOptions struct {
+	ID       string
+	activate bool
+}
+
+// GetAsset returns the status of the analytic asset and
 // attempts to activate it if needed
-func Activate(id string, context Context) ([]byte, error) {
+func GetAsset(options AssetOptions, context Context) ([]byte, error) {
 	var (
 		response *http.Response
 		err      error
 		body     []byte
 		assets   Assets
 	)
-	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + id + "/assets/"}, context); err != nil {
+	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID + "/assets/"}, context); err != nil {
 		return nil, pzsvc.TraceErr(err)
 	}
 	defer response.Body.Close()
@@ -242,8 +251,27 @@ func Activate(id string, context Context) ([]byte, error) {
 	if err = json.Unmarshal(body, &assets); err != nil {
 		return nil, pzsvc.TraceErr(err)
 	}
-	if assets.Analytic.Status == "inactive" {
-		go doRequest(doRequestInput{method: "GET", inputURL: assets.Analytic.Links.Activate}, context)
+	if options.activate && (assets.Analytic.Status == "inactive") {
+		go doRequest(doRequestInput{method: "POST", inputURL: assets.Analytic.Links.Activate}, context)
 	}
 	return json.Marshal(assets.Analytic)
+}
+
+// GetMetadata returns the Beachfront metadata for a single scene
+func GetMetadata(options AssetOptions, context Context) (*geojson.Feature, error) {
+	var (
+		response *http.Response
+		err      error
+		body     []byte
+		feature  geojson.Feature
+	)
+	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID}, context); err != nil {
+		return nil, pzsvc.TraceErr(err)
+	}
+	defer response.Body.Close()
+	body, _ = ioutil.ReadAll(response.Body)
+	if err = json.Unmarshal(body, &feature); err != nil {
+		return nil, pzsvc.TraceErr(err)
+	}
+	return transformSRFeature(&feature), nil
 }

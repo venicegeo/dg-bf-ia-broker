@@ -15,6 +15,7 @@
 package planet
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -68,22 +69,24 @@ func TestPlanet(t *testing.T) {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
 
-	// Test 5 = Tides
+	// Test 5 - Tides
 	context.Tides = true
-	if _, err = GetScenes(options, context); err != nil {
+	var scenes *geojson.FeatureCollection
+	if scenes, err = GetScenes(options, context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
-}
 
-func TestActivation(t *testing.T) {
-	var (
-		context Context
-		err     error
-	)
-	context.PlanetKey = os.Getenv("PL_API_KEY")
-	context.ItemType = "REOrthoTile"
-	id := "20161203_021824_5462311_RapidEye-1"
-	if _, err = Activate(id, context); err != nil {
-		t.Errorf("Failed to activate; received: %v", err.Error())
+	// Test - Metadata
+	var feature *geojson.Feature
+	aOptions := AssetOptions{ID: scenes.Features[0].IDStr(), activate: true}
+	if feature, err = GetMetadata(aOptions, context); err != nil {
+		t.Errorf("Failed to get asset; received: %v", err.Error())
+	}
+	b, _ := geojson.Write(feature)
+	fmt.Print(string(b))
+
+	// Test - Activation
+	if _, err = GetAsset(aOptions, context); err != nil {
+		t.Errorf("Failed to get asset; received: %v", err.Error())
 	}
 }

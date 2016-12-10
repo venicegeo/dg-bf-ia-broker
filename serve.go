@@ -34,8 +34,9 @@ func serve(redisClient *redis.Client) {
 	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprintf(writer, "Hi")
 	})
-	router.HandleFunc("/planet/discover", planet.DiscoverPlanetHandler)
-	router.HandleFunc("/planet/activate/{id}", planet.ActivatePlanetHandler)
+	router.HandleFunc("/planet/discover/{itemType}", planet.DiscoverHandler)
+	router.HandleFunc("/planet/{itemType}/{id}", planet.MetadataHandler)
+	router.HandleFunc("/planet/asset/{itemType}/{id}", planet.AssetHandler)
 	// 	case "/help":
 	// 		fmt.Fprintf(writer, "We're sorry, help is not yet implemented.\n")
 	// 	default:

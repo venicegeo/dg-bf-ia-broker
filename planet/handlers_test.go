@@ -25,8 +25,9 @@ import (
 	pzsvc "github.com/venicegeo/pzsvc-lib"
 )
 
-const fakeDiscoverURL = "foo://bar/planet/discover?PL_API_KEY=%v"
-const fakeActivateURL = "foo://bar/planet/activate/%v?PL_API_KEY=%v"
+const fakeDiscoverURL = "foo://bar/planet/discover/REOrthoTile?PL_API_KEY=%v"
+const fakeMetadataURL = "foo://bar/planet/REOrthoTile/%v?PL_API_KEY=%v"
+const fakeAssetURL = "foo://bar/planet/asset/REOrthoTile/%v?PL_API_KEY=%v"
 
 func TestHandlers(t *testing.T) {
 	var (
@@ -39,7 +40,7 @@ func TestHandlers(t *testing.T) {
 		t.Error(err.Error())
 	}
 	writer, _, _ := pzsvc.GetMockResponseWriter()
-	DiscoverPlanetHandler(writer, request)
+	DiscoverHandler(writer, request)
 	if writer.StatusCode == http.StatusOK {
 		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
@@ -49,7 +50,9 @@ func TestHandlers(t *testing.T) {
 		t.Error(err.Error())
 	}
 	writer, _, _ = pzsvc.GetMockResponseWriter()
-	DiscoverPlanetHandler(writer, request)
+	router := mux.NewRouter()
+	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
+	router.ServeHTTP(writer, request)
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
@@ -60,20 +63,19 @@ func TestHandlers(t *testing.T) {
 	id := fci.(*geojson.FeatureCollection).Features[0].IDStr()
 
 	// Test: Activate, no Image ID
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeActivateURL, "", ""), nil); err != nil {
+	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
 		t.Error(err.Error())
 	}
 	writer, _, _ = pzsvc.GetMockResponseWriter()
-	router := mux.NewRouter()
 
-	router.HandleFunc("/planet/activate/{id}", ActivatePlanetHandler)
+	router.HandleFunc("/planet/asset/{itemType}/{id}", AssetHandler)
 	router.ServeHTTP(writer, request)
 	if writer.StatusCode == http.StatusOK {
 		t.Errorf("Expected request to fail due to lack of Image ID but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
 
 	// Test: Activate, no API Key
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeActivateURL, id, ""), nil); err != nil {
+	if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
 		t.Error(err.Error())
 	}
 	writer, _, _ = pzsvc.GetMockResponseWriter()
@@ -82,8 +84,25 @@ func TestHandlers(t *testing.T) {
 		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
 
+	// Test: Metadata (happy)
+	metadataURL := fmt.Sprintf(fakeMetadataURL, id, os.Getenv("PL_API_KEY"))
+	fmt.Print(metadataURL)
+
+	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
+		t.Error(err.Error())
+	}
+	writer, _, _ = pzsvc.GetMockResponseWriter()
+	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
+	router.ServeHTTP(writer, request)
+	if writer.StatusCode != http.StatusOK {
+		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
+	}
+
+	fmt.Print(writer.OutputString)
+
 	// Test: Activate (happy)
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeActivateURL, id, os.Getenv("PL_API_KEY")), nil); err != nil {
+	assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
+	if request, err = http.NewRequest("POST", assetURL, nil); err != nil {
 		t.Error(err.Error())
 	}
 	writer, _, _ = pzsvc.GetMockResponseWriter()
@@ -91,6 +110,4 @@ func TestHandlers(t *testing.T) {
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
-
-	fmt.Print(writer.OutputString)
 }
