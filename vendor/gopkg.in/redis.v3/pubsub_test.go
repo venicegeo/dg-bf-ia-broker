@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/redis.v5"
+	"gopkg.in/redis.v3"
 )
 
 var _ = Describe("PubSub", func() {
@@ -53,7 +53,7 @@ var _ = Describe("PubSub", func() {
 		{
 			msgi, err := pubsub.ReceiveTimeout(time.Second)
 			Expect(err).NotTo(HaveOccurred())
-			subscr := msgi.(*redis.Message)
+			subscr := msgi.(*redis.PMessage)
 			Expect(subscr.Channel).To(Equal("mychannel1"))
 			Expect(subscr.Pattern).To(Equal("mychannel*"))
 			Expect(subscr.Payload).To(Equal("hello"))
@@ -69,7 +69,7 @@ var _ = Describe("PubSub", func() {
 		}
 
 		stats := client.PoolStats()
-		Expect(stats.Requests - stats.Hits).To(Equal(uint32(2)))
+		Expect(stats.Requests - stats.Hits - stats.Waits).To(Equal(uint32(2)))
 	})
 
 	It("should pub/sub channels", func() {
@@ -196,7 +196,7 @@ var _ = Describe("PubSub", func() {
 		}
 
 		stats := client.PoolStats()
-		Expect(stats.Requests - stats.Hits).To(Equal(uint32(2)))
+		Expect(stats.Requests - stats.Hits - stats.Waits).To(Equal(uint32(2)))
 	})
 
 	It("should ping/pong", func() {
@@ -288,7 +288,7 @@ var _ = Describe("PubSub", func() {
 	})
 
 	expectReceiveMessageOnError := func(pubsub *redis.PubSub) {
-		cn1, _, err := pubsub.Pool().Get()
+		cn1, err := pubsub.Pool().Get()
 		Expect(err).NotTo(HaveOccurred())
 		cn1.NetConn = &badConn{
 			readErr:  io.EOF,
@@ -315,7 +315,7 @@ var _ = Describe("PubSub", func() {
 		Eventually(done).Should(Receive())
 
 		stats := client.PoolStats()
-		Expect(stats.Requests).To(Equal(uint32(3)))
+		Expect(stats.Requests).To(Equal(uint32(4)))
 		Expect(stats.Hits).To(Equal(uint32(1)))
 	}
 

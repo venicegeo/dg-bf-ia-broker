@@ -1,13 +1,11 @@
 package redis_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/redis.v5"
-	"gopkg.in/redis.v5/internal/pool"
+	"gopkg.in/redis.v3"
+	"gopkg.in/redis.v3/internal/pool"
 )
 
 var _ = Describe("pool", func() {
@@ -22,7 +20,7 @@ var _ = Describe("pool", func() {
 		Expect(client.Close()).NotTo(HaveOccurred())
 	})
 
-	It("respects max size", func() {
+	It("should respect max size", func() {
 		perform(1000, func(id int) {
 			val, err := client.Ping().Result()
 			Expect(err).NotTo(HaveOccurred())
@@ -35,23 +33,20 @@ var _ = Describe("pool", func() {
 		Expect(pool.Len()).To(Equal(pool.FreeLen()))
 	})
 
-	It("respects max size on multi", func() {
+	It("should respect max on multi", func() {
 		perform(1000, func(id int) {
 			var ping *redis.StatusCmd
 
-			err := client.Watch(func(tx *redis.Tx) error {
-				cmds, err := tx.Pipelined(func(pipe *redis.Pipeline) error {
-					ping = pipe.Ping()
-					return nil
-				})
-				Expect(err).NotTo(HaveOccurred())
-				Expect(cmds).To(HaveLen(1))
-				return err
+			multi := client.Multi()
+			cmds, err := multi.Exec(func() error {
+				ping = multi.Ping()
+				return nil
 			})
 			Expect(err).NotTo(HaveOccurred())
-
+			Expect(cmds).To(HaveLen(1))
 			Expect(ping.Err()).NotTo(HaveOccurred())
 			Expect(ping.Val()).To(Equal("PONG"))
+			Expect(multi.Close()).NotTo(HaveOccurred())
 		})
 
 		pool := client.Pool()
@@ -60,7 +55,7 @@ var _ = Describe("pool", func() {
 		Expect(pool.Len()).To(Equal(pool.FreeLen()))
 	})
 
-	It("respects max size on pipelines", func() {
+	It("should respect max on pipelines", func() {
 		perform(1000, func(id int) {
 			pipe := client.Pipeline()
 			ping := pipe.Ping()
@@ -78,13 +73,13 @@ var _ = Describe("pool", func() {
 		Expect(pool.Len()).To(Equal(pool.FreeLen()))
 	})
 
-	It("respects max size on pubsub", func() {
+	It("should respect max on pubsub", func() {
 		connPool := client.Pool()
 		connPool.(*pool.ConnPool).DialLimiter = nil
 
 		perform(1000, func(id int) {
-			pubsub, err := client.Subscribe()
-			Expect(err).NotTo(HaveOccurred())
+			pubsub := client.PubSub()
+			Expect(pubsub.Subscribe()).NotTo(HaveOccurred())
 			Expect(pubsub.Close()).NotTo(HaveOccurred())
 		})
 
@@ -92,8 +87,8 @@ var _ = Describe("pool", func() {
 		Expect(connPool.Len()).To(BeNumerically("<=", 10))
 	})
 
-	It("removes broken connections", func() {
-		cn, _, err := client.Pool().Get()
+	It("should remove broken connections", func() {
+		cn, err := client.Pool().Get()
 		Expect(err).NotTo(HaveOccurred())
 		cn.NetConn = &badConn{}
 		Expect(client.Pool().Put(cn)).NotTo(HaveOccurred())
@@ -112,10 +107,11 @@ var _ = Describe("pool", func() {
 		stats := pool.Stats()
 		Expect(stats.Requests).To(Equal(uint32(4)))
 		Expect(stats.Hits).To(Equal(uint32(2)))
+		Expect(stats.Waits).To(Equal(uint32(0)))
 		Expect(stats.Timeouts).To(Equal(uint32(0)))
 	})
 
-	It("reuses connections", func() {
+	It("should reuse connections", func() {
 		for i := 0; i < 100; i++ {
 			val, err := client.Ping().Result()
 			Expect(err).NotTo(HaveOccurred())
@@ -129,28 +125,7 @@ var _ = Describe("pool", func() {
 		stats := pool.Stats()
 		Expect(stats.Requests).To(Equal(uint32(101)))
 		Expect(stats.Hits).To(Equal(uint32(100)))
+		Expect(stats.Waits).To(Equal(uint32(0)))
 		Expect(stats.Timeouts).To(Equal(uint32(0)))
-	})
-
-	It("removes idle connections", func() {
-		stats := client.PoolStats()
-		Expect(stats).To(Equal(&redis.PoolStats{
-			Requests:   1,
-			Hits:       0,
-			Timeouts:   0,
-			TotalConns: 1,
-			FreeConns:  1,
-		}))
-
-		time.Sleep(2 * time.Second)
-
-		stats = client.PoolStats()
-		Expect(stats).To(Equal(&redis.PoolStats{
-			Requests:   1,
-			Hits:       0,
-			Timeouts:   0,
-			TotalConns: 0,
-			FreeConns:  0,
-		}))
 	})
 })

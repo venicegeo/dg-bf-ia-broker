@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/redis.v5"
+	"gopkg.in/redis.v3"
 )
 
 var client *redis.Client
@@ -138,12 +138,12 @@ func ExampleClient_Scan() {
 		}
 	}
 
-	var cursor uint64
+	var cursor int64
 	var n int
 	for {
 		var keys []string
 		var err error
-		keys, cursor, err = client.Scan(cursor, "", 10).Result()
+		cursor, keys, err = client.Scan(cursor, "", 10).Result()
 		if err != nil {
 			panic(err)
 		}
@@ -184,18 +184,21 @@ func ExampleClient_Watch() {
 
 	// Transactionally increments key using GET and SET commands.
 	incr = func(key string) error {
-		err := client.Watch(func(tx *redis.Tx) error {
-			n, err := tx.Get(key).Int64()
-			if err != nil && err != redis.Nil {
-				return err
-			}
-
-			_, err = tx.Pipelined(func(pipe *redis.Pipeline) error {
-				pipe.Set(key, strconv.FormatInt(n+1, 10), 0)
-				return nil
-			})
+		tx, err := client.Watch(key)
+		if err != nil {
 			return err
-		}, key)
+		}
+		defer tx.Close()
+
+		n, err := tx.Get(key).Int64()
+		if err != nil && err != redis.Nil {
+			return err
+		}
+
+		_, err = tx.Exec(func() error {
+			tx.Set(key, strconv.FormatInt(n+1, 10), 0)
+			return nil
+		})
 		if err == redis.TxFailedErr {
 			return incr(key)
 		}
@@ -285,7 +288,7 @@ func ExampleScript() {
 		return false
 	`)
 
-	n, err := IncrByXX.Run(client, []string{"xx_counter"}, 2).Result()
+	n, err := IncrByXX.Run(client, []string{"xx_counter"}, []string{"2"}).Result()
 	fmt.Println(n, err)
 
 	err = client.Set("xx_counter", "40", 0).Err()
@@ -293,7 +296,7 @@ func ExampleScript() {
 		panic(err)
 	}
 
-	n, err = IncrByXX.Run(client, []string{"xx_counter"}, 2).Result()
+	n, err = IncrByXX.Run(client, []string{"xx_counter"}, []string{"2"}).Result()
 	fmt.Println(n, err)
 
 	// Output: <nil> redis: nil
@@ -310,24 +313,4 @@ func Example_customCommand() {
 	v, err := Get(client, "key_does_not_exist").Result()
 	fmt.Printf("%q %s", v, err)
 	// Output: "" redis: nil
-}
-
-func ExampleScanIterator() {
-	iter := client.Scan(0, "", 0).Iterator()
-	for iter.Next() {
-		fmt.Println(iter.Val())
-	}
-	if err := iter.Err(); err != nil {
-		panic(err)
-	}
-}
-
-func ExampleScanCmd_Iterator() {
-	iter := client.Scan(0, "", 0).Iterator()
-	for iter.Next() {
-		fmt.Println(iter.Val())
-	}
-	if err := iter.Err(); err != nil {
-		panic(err)
-	}
 }

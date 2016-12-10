@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
+	"sync"
+	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/redis.v5"
+	"gopkg.in/redis.v3"
 )
 
 var _ = Describe("Commands", func() {
@@ -27,19 +30,13 @@ var _ = Describe("Commands", func() {
 	Describe("server", func() {
 
 		It("should Auth", func() {
-			_, err := client.Pipelined(func(pipe *redis.Pipeline) error {
-				pipe.Auth("password")
-				return nil
-			})
-			Expect(err).To(MatchError("ERR Client sent AUTH, but no password is set"))
+			auth := client.Auth("password")
+			Expect(auth.Err()).To(MatchError("ERR Client sent AUTH, but no password is set"))
+			Expect(auth.Val()).To(Equal(""))
 		})
 
 		It("should Echo", func() {
-			pipe := client.Pipeline()
-			echo := pipe.Echo("hello")
-			_, err := pipe.Exec()
-			Expect(err).NotTo(HaveOccurred())
-
+			echo := client.Echo("hello")
 			Expect(echo.Err()).NotTo(HaveOccurred())
 			Expect(echo.Val()).To(Equal("hello"))
 		})
@@ -51,11 +48,7 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should Select", func() {
-			pipe := client.Pipeline()
-			sel := pipe.Select(1)
-			_, err := pipe.Exec()
-			Expect(err).NotTo(HaveOccurred())
-
+			sel := client.Select(1)
 			Expect(sel.Err()).NotTo(HaveOccurred())
 			Expect(sel.Val()).To(Equal("OK"))
 		})
@@ -94,18 +87,13 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should ClientSetName and ClientGetName", func() {
-			pipe := client.Pipeline()
-			set := pipe.ClientSetName("theclientname")
-			get := pipe.ClientGetName()
-			_, err := pipe.Exec()
+			isSet, err := client.ClientSetName("theclientname").Result()
 			Expect(err).NotTo(HaveOccurred())
+			Expect(isSet).To(BeTrue())
 
-			Expect(set.Err()).NotTo(HaveOccurred())
-			Expect(set.Val()).To(BeTrue())
-
-			Expect(get.Err()).NotTo(HaveOccurred())
-			Expect(get.Val()).To(Equal("theclientname"))
-
+			val, err := client.ClientGetName().Result()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(val).To(Equal("theclientname"))
 		})
 
 		It("should ConfigGet", func() {
@@ -174,9 +162,9 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should Time", func() {
-			tm, err := client.Time().Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(tm).To(BeTemporally("~", time.Now(), 3*time.Second))
+			time := client.Time()
+			Expect(time.Err()).NotTo(HaveOccurred())
+			Expect(time.Val()).To(HaveLen(2))
 		})
 
 	})
@@ -324,14 +312,15 @@ var _ = Describe("Commands", func() {
 			Expect(get.Err()).To(Equal(redis.Nil))
 			Expect(get.Val()).To(Equal(""))
 
-			pipe := client.Pipeline()
-			pipe.Select(2)
-			get = pipe.Get("key")
-			pipe.FlushDb()
+			sel := client.Select(2)
+			Expect(sel.Err()).NotTo(HaveOccurred())
+			Expect(sel.Val()).To(Equal("OK"))
 
-			_, err := pipe.Exec()
-			Expect(err).NotTo(HaveOccurred())
+			get = client.Get("key")
+			Expect(get.Err()).NotTo(HaveOccurred())
 			Expect(get.Val()).To(Equal("hello"))
+			Expect(client.FlushDb().Err()).NotTo(HaveOccurred())
+			Expect(client.Select(1).Err()).NotTo(HaveOccurred())
 		})
 
 		It("should Object", func() {
@@ -604,10 +593,10 @@ var _ = Describe("Commands", func() {
 				Expect(set.Err()).NotTo(HaveOccurred())
 			}
 
-			keys, cursor, err := client.Scan(0, "", 0).Result()
+			cursor, keys, err := client.Scan(0, "", 0).Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(keys).NotTo(BeEmpty())
-			Expect(cursor).NotTo(BeZero())
+			Expect(cursor > 0).To(Equal(true))
+			Expect(len(keys) > 0).To(Equal(true))
 		})
 
 		It("should SScan", func() {
@@ -616,10 +605,10 @@ var _ = Describe("Commands", func() {
 				Expect(sadd.Err()).NotTo(HaveOccurred())
 			}
 
-			keys, cursor, err := client.SScan("myset", 0, "", 0).Result()
+			cursor, keys, err := client.SScan("myset", 0, "", 0).Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(keys).NotTo(BeEmpty())
-			Expect(cursor).NotTo(BeZero())
+			Expect(cursor > 0).To(Equal(true))
+			Expect(len(keys) > 0).To(Equal(true))
 		})
 
 		It("should HScan", func() {
@@ -628,10 +617,10 @@ var _ = Describe("Commands", func() {
 				Expect(sadd.Err()).NotTo(HaveOccurred())
 			}
 
-			keys, cursor, err := client.HScan("myhash", 0, "", 0).Result()
+			cursor, keys, err := client.HScan("myhash", 0, "", 0).Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(keys).NotTo(BeEmpty())
-			Expect(cursor).NotTo(BeZero())
+			Expect(cursor > 0).To(Equal(true))
+			Expect(len(keys) > 0).To(Equal(true))
 		})
 
 		It("should ZScan", func() {
@@ -640,10 +629,10 @@ var _ = Describe("Commands", func() {
 				Expect(sadd.Err()).NotTo(HaveOccurred())
 			}
 
-			keys, cursor, err := client.ZScan("myset", 0, "", 0).Result()
+			cursor, keys, err := client.ZScan("myset", 0, "", 0).Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(keys).NotTo(BeEmpty())
-			Expect(cursor).NotTo(BeZero())
+			Expect(cursor > 0).To(Equal(true))
+			Expect(len(keys) > 0).To(Equal(true))
 		})
 
 	})
@@ -1011,23 +1000,6 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should SetXX", func() {
-			isSet, err := client.SetXX("key", "hello2", 0).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(isSet).To(Equal(false))
-
-			err = client.Set("key", "hello", 0).Err()
-			Expect(err).NotTo(HaveOccurred())
-
-			isSet, err = client.SetXX("key", "hello2", 0).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(isSet).To(Equal(true))
-
-			val, err := client.Get("key").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(val).To(Equal("hello2"))
-		})
-
-		It("should SetXX with expiration", func() {
 			isSet, err := client.SetXX("key", "hello2", time.Second).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(isSet).To(Equal(false))
@@ -1116,14 +1088,25 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should HGetAll", func() {
-			err := client.HSet("hash", "key1", "hello1").Err()
-			Expect(err).NotTo(HaveOccurred())
-			err = client.HSet("hash", "key2", "hello2").Err()
-			Expect(err).NotTo(HaveOccurred())
+			hSet := client.HSet("hash", "key1", "hello1")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+			hSet = client.HSet("hash", "key2", "hello2")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
 
-			m, err := client.HGetAll("hash").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(m).To(Equal(map[string]string{"key1": "hello1", "key2": "hello2"}))
+			hGetAll := client.HGetAll("hash")
+			Expect(hGetAll.Err()).NotTo(HaveOccurred())
+			Expect(hGetAll.Val()).To(Equal([]string{"key1", "hello1", "key2", "hello2"}))
+		})
+
+		It("should HGetAllMap", func() {
+			hSet := client.HSet("hash", "key1", "hello1")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+			hSet = client.HSet("hash", "key2", "hello2")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+
+			hGetAll := client.HGetAllMap("hash")
+			Expect(hGetAll.Err()).NotTo(HaveOccurred())
+			Expect(hGetAll.Val()).To(Equal(map[string]string{"key1": "hello1", "key2": "hello2"}))
 		})
 
 		It("should HIncrBy", func() {
@@ -1188,31 +1171,45 @@ var _ = Describe("Commands", func() {
 		})
 
 		It("should HMGet", func() {
-			err := client.HSet("hash", "key1", "hello1").Err()
-			Expect(err).NotTo(HaveOccurred())
-			err = client.HSet("hash", "key2", "hello2").Err()
-			Expect(err).NotTo(HaveOccurred())
+			hSet := client.HSet("hash", "key1", "hello1")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
+			hSet = client.HSet("hash", "key2", "hello2")
+			Expect(hSet.Err()).NotTo(HaveOccurred())
 
-			vals, err := client.HMGet("hash", "key1", "key2", "_").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(vals).To(Equal([]interface{}{"hello1", "hello2", nil}))
+			hMGet := client.HMGet("hash", "key1", "key2", "_")
+			Expect(hMGet.Err()).NotTo(HaveOccurred())
+			Expect(hMGet.Val()).To(Equal([]interface{}{"hello1", "hello2", nil}))
 		})
 
 		It("should HMSet", func() {
-			ok, err := client.HMSet("hash", map[string]string{
-				"key1": "hello1",
-				"key2": "hello2",
-			}).Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(ok).To(Equal("OK"))
+			hMSet := client.HMSet("hash", "key1", "hello1", "key2", "hello2")
+			Expect(hMSet.Err()).NotTo(HaveOccurred())
+			Expect(hMSet.Val()).To(Equal("OK"))
 
-			v, err := client.HGet("hash", "key1").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(v).To(Equal("hello1"))
+			hGet := client.HGet("hash", "key1")
+			Expect(hGet.Err()).NotTo(HaveOccurred())
+			Expect(hGet.Val()).To(Equal("hello1"))
 
-			v, err = client.HGet("hash", "key2").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(v).To(Equal("hello2"))
+			hGet = client.HGet("hash", "key2")
+			Expect(hGet.Err()).NotTo(HaveOccurred())
+			Expect(hGet.Val()).To(Equal("hello2"))
+		})
+
+		It("should HMSetMap", func() {
+			hMSetMap := client.HMSetMap("hash", map[string]string{
+				"key3": "hello3",
+				"key4": "hello4",
+			})
+			Expect(hMSetMap.Err()).NotTo(HaveOccurred())
+			Expect(hMSetMap.Val()).To(Equal("OK"))
+
+			hGet := client.HGet("hash", "key3")
+			Expect(hGet.Err()).NotTo(HaveOccurred())
+			Expect(hGet.Val()).To(Equal("hello3"))
+
+			hGet = client.HGet("hash", "key4")
+			Expect(hGet.Err()).NotTo(HaveOccurred())
+			Expect(hGet.Val()).To(Equal("hello4"))
 		})
 
 		It("should HSet", func() {
@@ -1329,7 +1326,7 @@ var _ = Describe("Commands", func() {
 
 			stats := client.PoolStats()
 			Expect(stats.Requests).To(Equal(uint32(3)))
-			Expect(stats.Hits).To(Equal(uint32(1)))
+			Expect(stats.Hits).To(Equal(uint32(2)))
 			Expect(stats.Timeouts).To(Equal(uint32(0)))
 		})
 
@@ -2250,28 +2247,28 @@ var _ = Describe("Commands", func() {
 			zAdd = client.ZAdd("zset", redis.Z{3, "three"})
 			Expect(zAdd.Err()).NotTo(HaveOccurred())
 
-			zRangeByScore := client.ZRangeByScore("zset", redis.ZRangeBy{
+			zRangeByScore := client.ZRangeByScore("zset", redis.ZRangeByScore{
 				Min: "-inf",
 				Max: "+inf",
 			})
 			Expect(zRangeByScore.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByScore.Val()).To(Equal([]string{"one", "two", "three"}))
 
-			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeBy{
+			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeByScore{
 				Min: "1",
 				Max: "2",
 			})
 			Expect(zRangeByScore.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByScore.Val()).To(Equal([]string{"one", "two"}))
 
-			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeBy{
+			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeByScore{
 				Min: "(1",
 				Max: "2",
 			})
 			Expect(zRangeByScore.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByScore.Val()).To(Equal([]string{"two"}))
 
-			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeBy{
+			zRangeByScore = client.ZRangeByScore("zset", redis.ZRangeByScore{
 				Min: "(1",
 				Max: "(2",
 			})
@@ -2286,28 +2283,28 @@ var _ = Describe("Commands", func() {
 			Expect(zAdd.Err()).NotTo(HaveOccurred())
 			zAdd = client.ZAdd("zset", redis.Z{0, "c"})
 
-			zRangeByLex := client.ZRangeByLex("zset", redis.ZRangeBy{
+			zRangeByLex := client.ZRangeByLex("zset", redis.ZRangeByScore{
 				Min: "-",
 				Max: "+",
 			})
 			Expect(zRangeByLex.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByLex.Val()).To(Equal([]string{"a", "b", "c"}))
 
-			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeBy{
+			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeByScore{
 				Min: "[a",
 				Max: "[b",
 			})
 			Expect(zRangeByLex.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByLex.Val()).To(Equal([]string{"a", "b"}))
 
-			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeBy{
+			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeByScore{
 				Min: "(a",
 				Max: "[b",
 			})
 			Expect(zRangeByLex.Err()).NotTo(HaveOccurred())
 			Expect(zRangeByLex.Val()).To(Equal([]string{"b"}))
 
-			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeBy{
+			zRangeByLex = client.ZRangeByLex("zset", redis.ZRangeByScore{
 				Min: "(a",
 				Max: "(b",
 			})
@@ -2323,28 +2320,28 @@ var _ = Describe("Commands", func() {
 			zAdd = client.ZAdd("zset", redis.Z{3, "three"})
 			Expect(zAdd.Err()).NotTo(HaveOccurred())
 
-			val, err := client.ZRangeByScoreWithScores("zset", redis.ZRangeBy{
+			val, err := client.ZRangeByScoreWithScores("zset", redis.ZRangeByScore{
 				Min: "-inf",
 				Max: "+inf",
 			}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{1, "one"}, {2, "two"}, {3, "three"}}))
 
-			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeBy{
+			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeByScore{
 				Min: "1",
 				Max: "2",
 			}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{1, "one"}, {2, "two"}}))
 
-			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeBy{
+			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeByScore{
 				Min: "(1",
 				Max: "2",
 			}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{2, "two"}}))
 
-			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeBy{
+			val, err = client.ZRangeByScoreWithScores("zset", redis.ZRangeByScore{
 				Min: "(1",
 				Max: "(2",
 			}).Result()
@@ -2471,17 +2468,17 @@ var _ = Describe("Commands", func() {
 			Expect(zadd.Err()).NotTo(HaveOccurred())
 
 			vals, err := client.ZRevRangeByScore(
-				"zset", redis.ZRangeBy{Max: "+inf", Min: "-inf"}).Result()
+				"zset", redis.ZRangeByScore{Max: "+inf", Min: "-inf"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{"three", "two", "one"}))
 
 			vals, err = client.ZRevRangeByScore(
-				"zset", redis.ZRangeBy{Max: "2", Min: "(1"}).Result()
+				"zset", redis.ZRangeByScore{Max: "2", Min: "(1"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{"two"}))
 
 			vals, err = client.ZRevRangeByScore(
-				"zset", redis.ZRangeBy{Max: "(2", Min: "(1"}).Result()
+				"zset", redis.ZRangeByScore{Max: "(2", Min: "(1"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{}))
 		})
@@ -2495,17 +2492,17 @@ var _ = Describe("Commands", func() {
 			Expect(zadd.Err()).NotTo(HaveOccurred())
 
 			vals, err := client.ZRevRangeByLex(
-				"zset", redis.ZRangeBy{Max: "+", Min: "-"}).Result()
+				"zset", redis.ZRangeByScore{Max: "+", Min: "-"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{"c", "b", "a"}))
 
 			vals, err = client.ZRevRangeByLex(
-				"zset", redis.ZRangeBy{Max: "[b", Min: "(a"}).Result()
+				"zset", redis.ZRangeByScore{Max: "[b", Min: "(a"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{"b"}))
 
 			vals, err = client.ZRevRangeByLex(
-				"zset", redis.ZRangeBy{Max: "(b", Min: "(a"}).Result()
+				"zset", redis.ZRangeByScore{Max: "(b", Min: "(a"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]string{}))
 		})
@@ -2519,7 +2516,7 @@ var _ = Describe("Commands", func() {
 			Expect(zadd.Err()).NotTo(HaveOccurred())
 
 			vals, err := client.ZRevRangeByScoreWithScores(
-				"zset", redis.ZRangeBy{Max: "+inf", Min: "-inf"}).Result()
+				"zset", redis.ZRangeByScore{Max: "+inf", Min: "-inf"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(vals).To(Equal([]redis.Z{{3, "three"}, {2, "two"}, {1, "one"}}))
 		})
@@ -2533,17 +2530,17 @@ var _ = Describe("Commands", func() {
 			Expect(zAdd.Err()).NotTo(HaveOccurred())
 
 			val, err := client.ZRevRangeByScoreWithScores(
-				"zset", redis.ZRangeBy{Max: "+inf", Min: "-inf"}).Result()
+				"zset", redis.ZRangeByScore{Max: "+inf", Min: "-inf"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{3, "three"}, {2, "two"}, {1, "one"}}))
 
 			val, err = client.ZRevRangeByScoreWithScores(
-				"zset", redis.ZRangeBy{Max: "2", Min: "(1"}).Result()
+				"zset", redis.ZRangeByScore{Max: "2", Min: "(1"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{2, "two"}}))
 
 			val, err = client.ZRevRangeByScoreWithScores(
-				"zset", redis.ZRangeBy{Max: "(2", Min: "(1"}).Result()
+				"zset", redis.ZRangeByScore{Max: "(2", Min: "(1"}).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{}))
 		})
@@ -2595,6 +2592,63 @@ var _ = Describe("Commands", func() {
 			val, err := client.ZRangeWithScores("out", 0, -1).Result()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(val).To(Equal([]redis.Z{{5, "one"}, {9, "three"}, {10, "two"}}))
+		})
+
+	})
+
+	Describe("watch/unwatch", func() {
+
+		It("should WatchUnwatch", func() {
+			var C, N = 10, 1000
+			if testing.Short() {
+				N = 100
+			}
+
+			err := client.Set("key", "0", 0).Err()
+			Expect(err).NotTo(HaveOccurred())
+
+			wg := &sync.WaitGroup{}
+			for i := 0; i < C; i++ {
+				wg.Add(1)
+
+				go func() {
+					defer GinkgoRecover()
+					defer wg.Done()
+
+					multi := client.Multi()
+					defer multi.Close()
+
+					for j := 0; j < N; j++ {
+						val, err := multi.Watch("key").Result()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(val).To(Equal("OK"))
+
+						val, err = multi.Get("key").Result()
+						Expect(err).NotTo(HaveOccurred())
+						Expect(val).NotTo(Equal(redis.Nil))
+
+						num, err := strconv.ParseInt(val, 10, 64)
+						Expect(err).NotTo(HaveOccurred())
+
+						cmds, err := multi.Exec(func() error {
+							multi.Set("key", strconv.FormatInt(num+1, 10), 0)
+							return nil
+						})
+						if err == redis.TxFailedErr {
+							j--
+							continue
+						}
+						Expect(err).NotTo(HaveOccurred())
+						Expect(cmds).To(HaveLen(1))
+						Expect(cmds[0].Err()).NotTo(HaveOccurred())
+					}
+				}()
+			}
+			wg.Wait()
+
+			val, err := client.Get("key").Int64()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(val).To(Equal(int64(C * N)))
 		})
 
 	})
@@ -2721,35 +2775,20 @@ var _ = Describe("Commands", func() {
 			// "166274.15156960033"
 			// GEODIST Sicily Palermo Catania km
 			// "166.27415156960032"
-			dist, err := client.GeoDist("Sicily", "Palermo", "Catania", "km").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(dist).To(BeNumerically("~", 166.27, 0.01))
+			geoDist := client.GeoDist("Sicily", "Palermo", "Catania", "km")
+			Expect(geoDist.Err()).NotTo(HaveOccurred())
+			Expect(geoDist.Val()).To(BeNumerically("~", 166.27, 0.01))
 
-			dist, err = client.GeoDist("Sicily", "Palermo", "Catania", "m").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(dist).To(BeNumerically("~", 166274.15, 0.01))
+			geoDist = client.GeoDist("Sicily", "Palermo", "Catania", "m")
+			Expect(geoDist.Err()).NotTo(HaveOccurred())
+			Expect(geoDist.Val()).To(BeNumerically("~", 166274.15, 0.01))
 		})
 
 		It("should get geo hash in string representation", func() {
-			hashes, err := client.GeoHash("Sicily", "Palermo", "Catania").Result()
+			res, err := client.GeoHash("Sicily", "Palermo", "Catania").Result()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(hashes).To(ConsistOf([]string{"sqc8b49rny0", "sqdtr74hyu0"}))
-		})
-
-		It("should return geo position", func() {
-			pos, err := client.GeoPos("Sicily", "Palermo", "Catania", "NonExisting").Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(pos).To(ConsistOf([]*redis.GeoPos{
-				{
-					Longitude: 13.361389338970184,
-					Latitude:  38.1155563954963,
-				},
-				{
-					Longitude: 15.087267458438873,
-					Latitude:  37.50266842333162,
-				},
-				nil,
-			}))
+			Expect(res[0]).To(Equal("sqc8b49rny0"))
+			Expect(res[1]).To(Equal("sqdtr74hyu0"))
 		})
 	})
 
@@ -2803,7 +2842,6 @@ var _ = Describe("Commands", func() {
 	})
 
 	Describe("json marshaling/unmarshaling", func() {
-
 		BeforeEach(func() {
 			value := &numberStruct{Number: 42}
 			err := client.Set("key", value, 0).Err()
@@ -2819,26 +2857,8 @@ var _ = Describe("Commands", func() {
 		It("should scan custom values using json", func() {
 			value := &numberStruct{}
 			err := client.Get("key").Scan(value)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).To(BeNil())
 			Expect(value.Number).To(Equal(42))
-		})
-
-	})
-
-	Describe("Command", func() {
-
-		It("returns map of commands", func() {
-			cmds, err := client.Command().Result()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(cmds)).To(BeNumerically("~", 173, 5))
-
-			cmd := cmds["mget"]
-			Expect(cmd.Name).To(Equal("mget"))
-			Expect(cmd.Arity).To(Equal(int8(-2)))
-			Expect(cmd.Flags).To(Equal([]string{"readonly"}))
-			Expect(cmd.FirstKeyPos).To(Equal(int8(1)))
-			Expect(cmd.LastKeyPos).To(Equal(int8(-1)))
-			Expect(cmd.StepCount).To(Equal(int8(1)))
 		})
 
 	})

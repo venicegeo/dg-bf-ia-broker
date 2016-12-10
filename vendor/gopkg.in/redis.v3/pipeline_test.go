@@ -4,13 +4,13 @@ import (
 	"strconv"
 	"sync"
 
-	"gopkg.in/redis.v5"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"gopkg.in/redis.v3"
 )
 
-var _ = Describe("Pipeline", func() {
+var _ = Describe("Pipelining", func() {
 	var client *redis.Client
 
 	BeforeEach(func() {
@@ -51,12 +51,15 @@ var _ = Describe("Pipeline", func() {
 		Expect(getNil.Val()).To(Equal(""))
 	})
 
-	It("discards queued commands", func() {
+	It("should discard", func() {
 		pipeline := client.Pipeline()
+
 		pipeline.Get("key")
 		pipeline.Discard()
-		_, err := pipeline.Exec()
-		Expect(err).To(MatchError("redis: pipeline is empty"))
+		cmds, err := pipeline.Exec()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cmds).To(HaveLen(0))
+		Expect(pipeline.Close()).NotTo(HaveOccurred())
 	})
 
 	It("should support block style", func() {
@@ -81,10 +84,12 @@ var _ = Describe("Pipeline", func() {
 		Expect(pipeline.Close()).NotTo(HaveOccurred())
 	})
 
-	It("returns an error when there are no commands", func() {
+	It("should pipeline with empty queue", func() {
 		pipeline := client.Pipeline()
-		_, err := pipeline.Exec()
-		Expect(err).To(MatchError("redis: pipeline is empty"))
+		cmds, err := pipeline.Exec()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(cmds).To(HaveLen(0))
+		Expect(pipeline.Close()).NotTo(HaveOccurred())
 	})
 
 	It("should increment correctly", func() {
@@ -147,12 +152,10 @@ var _ = Describe("Pipeline", func() {
 		const N = 1000
 
 		pipeline := client.Pipeline()
-		var wg sync.WaitGroup
+		wg := &sync.WaitGroup{}
 		wg.Add(N)
 		for i := 0; i < N; i++ {
 			go func() {
-				defer GinkgoRecover()
-
 				pipeline.Ping()
 				wg.Done()
 			}()

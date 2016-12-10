@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/redis.v5/internal/pool"
+	"gopkg.in/redis.v3/internal/pool"
 )
 
 func benchmarkPoolGetPut(b *testing.B, poolSize int) {
@@ -16,7 +16,7 @@ func benchmarkPoolGetPut(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, _, err := connPool.Get()
+			cn, err := connPool.Get()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -48,7 +48,7 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, _, err := connPool.Get()
+			cn, err := connPool.Get()
 			if err != nil {
 				b.Fatal(err)
 			}

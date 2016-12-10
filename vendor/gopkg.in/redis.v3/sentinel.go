@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/redis.v5/internal"
-	"gopkg.in/redis.v5/internal/pool"
+	"gopkg.in/redis.v3/internal"
+	"gopkg.in/redis.v3/internal/pool"
 )
 
 //------------------------------------------------------------------------------
@@ -25,7 +25,7 @@ type FailoverOptions struct {
 	// Following options are copied from Options struct.
 
 	Password string
-	DB       int
+	DB       int64
 
 	MaxRetries int
 
@@ -64,52 +64,49 @@ func (opt *FailoverOptions) options() *Options {
 // goroutines.
 func NewFailoverClient(failoverOpt *FailoverOptions) *Client {
 	opt := failoverOpt.options()
-	opt.init()
-
 	failover := &sentinelFailover{
 		masterName:    failoverOpt.MasterName,
 		sentinelAddrs: failoverOpt.SentinelAddrs,
 
 		opt: opt,
 	}
+	base := baseClient{
+		opt:      opt,
+		connPool: failover.Pool(),
 
-	client := Client{
-		baseClient: baseClient{
-			opt:      opt,
-			connPool: failover.Pool(),
-
-			onClose: func() error {
-				return failover.Close()
-			},
+		onClose: func() error {
+			return failover.Close()
 		},
 	}
-	client.cmdable.process = client.Process
-
-	return &client
+	return &Client{
+		baseClient: base,
+		commandable: commandable{
+			process: base.process,
+		},
+	}
 }
 
 //------------------------------------------------------------------------------
 
 type sentinelClient struct {
-	cmdable
 	baseClient
+	commandable
 }
 
 func newSentinel(opt *Options) *sentinelClient {
-	opt.init()
-	client := sentinelClient{
-		baseClient: baseClient{
-			opt:      opt,
-			connPool: newConnPool(opt),
-		},
+	base := baseClient{
+		opt:      opt,
+		connPool: newConnPool(opt),
 	}
-	client.cmdable = cmdable{client.Process}
-	return &client
+	return &sentinelClient{
+		baseClient:  base,
+		commandable: commandable{process: base.process},
+	}
 }
 
 func (c *sentinelClient) PubSub() *PubSub {
 	return &PubSub{
-		base: baseClient{
+		base: &baseClient{
 			opt:      c.opt,
 			connPool: pool.NewStickyConnPool(c.connPool.(*pool.ConnPool), false),
 		},
@@ -267,10 +264,10 @@ func (d *sentinelFailover) closeOldConns(newMaster string) {
 		if cn == nil {
 			break
 		}
-		if cn.NetConn.RemoteAddr().String() != newMaster {
+		if cn.RemoteAddr().String() != newMaster {
 			err := fmt.Errorf(
 				"sentinel: closing connection to the old master %s",
-				cn.NetConn.RemoteAddr(),
+				cn.RemoteAddr(),
 			)
 			internal.Logf(err.Error())
 			d.pool.Remove(cn, err)
