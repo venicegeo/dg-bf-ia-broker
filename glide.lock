@@ -1,5 +1,5 @@
-hash: d1b9c8720ba78b9b91bb1e0669c7bbaf3530ec9e77d269f92fddd26d42c6a48c
-updated: 2016-12-09T14:15:15.443932862-05:00
+hash: 7ecb306521194da3a60413a32c0079a8d64bdbfaafa7500ff9211789e0973c9f
+updated: 2016-12-09T22:12:46.252814458-05:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
@@ -20,11 +20,10 @@ imports:
 - name: gopkg.in/bsm/ratelimit.v1
   version: db14e161995a5177acef654cb0dd785e8ee8bc22
 - name: gopkg.in/redis.v3
-  version: 854c88a72c8bb9c09936145aef886b7697d6b995
+  version: b5e368500d0a508ef8f16e9c2d4025a8a46bcc29
   subpackages:
   - internal
   - internal/consistenthash
   - internal/hashtag
   - internal/pool
-  - internal/proto
 testImports: []
