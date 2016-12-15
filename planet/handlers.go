@@ -19,8 +19,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
-	"github.com/venicegeo/pzsvc-lib"
 )
 
 const noPlanetKey = "This operation requires a Planet Labs API key."
@@ -47,7 +47,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		bytes     []byte
 		bbox      geojson.BoundingBox
 	)
-	if pzsvc.Preflight(writer, request) {
+	if util.Preflight(writer, request) {
 		return
 	}
 
@@ -77,13 +77,13 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 
 	if fc, err = GetScenes(options, context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
-			http.Error(writer, pzsvc.TraceStr(err.Error()), http.StatusInternalServerError)
+			http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
 	} else {
-		http.Error(writer, pzsvc.TraceStr(err.Error()), http.StatusInternalServerError)
+		http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
 	}
 }
 
@@ -104,7 +104,7 @@ func AssetHandler(writer http.ResponseWriter, request *http.Request) {
 		result  []byte
 		options AssetOptions
 	)
-	if pzsvc.Preflight(writer, request) {
+	if util.Preflight(writer, request) {
 		return
 	}
 	vars := mux.Vars(request)
@@ -152,7 +152,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		bytes   []byte
 		options AssetOptions
 	)
-	if pzsvc.Preflight(writer, request) {
+	if util.Preflight(writer, request) {
 		return
 	}
 	vars := mux.Vars(request)
@@ -172,7 +172,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 
 	if feature, err = GetMetadata(options, context); err == nil {
 		if bytes, err = geojson.Write(feature); err != nil {
-			http.Error(writer, pzsvc.TraceStr(err.Error()), http.StatusInternalServerError)
+			http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")

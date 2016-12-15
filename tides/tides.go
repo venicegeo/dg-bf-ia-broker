@@ -20,8 +20,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
-	"github.com/venicegeo/pzsvc-lib"
 )
 
 var tidesURL string
@@ -90,7 +90,7 @@ func toTidesIn(features []*geojson.Feature) *tidesIn {
 	for _, feature := range features {
 		if feature.PropertyFloat("CurrentTide") != math.NaN() {
 			if currTideIn = toTideIn(feature.ForceBbox(), feature.PropertyString("acquiredDate")); currTideIn == nil {
-				log.Print(pzsvc.TraceStr(`Could not get tide information from feature ` + feature.IDStr() + ` because required elements did not exist.`))
+				log.Print(util.TraceStr(`Could not get tide information from feature ` + feature.IDStr() + ` because required elements did not exist.`))
 				continue
 			}
 			result.Locations = append(result.Locations, *currTideIn)
@@ -117,7 +117,7 @@ func GetTides(fc *geojson.FeatureCollection, context Context) (*geojson.FeatureC
 	)
 	tin = toTidesIn(fc.Features)
 	features := make([]*geojson.Feature, len(fc.Features))
-	if _, err = pzsvc.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err == nil {
+	if _, err = util.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err == nil {
 		for inx, tideObj := range tout.Locations {
 			currentScene = tin.Map[tideObj.Dtg]
 			currentScene.Properties["CurrentTide"] = tideObj.Results.CurrTide

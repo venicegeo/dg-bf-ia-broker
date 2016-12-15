@@ -26,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
-	"github.com/venicegeo/pzsvc-lib"
 )
 
 var baseURLString string
@@ -118,7 +118,7 @@ func doRequest(input doRequestInput, context Context) (*http.Response, error) {
 	}
 
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
-	return pzsvc.HTTPClient().Do(request)
+	return util.HTTPClient().Do(request)
 }
 
 // Assets represents the assets available for a scene
@@ -172,20 +172,20 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
 	if body, err = json.Marshal(req); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if fc, err = transformSRBody(body); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	if context.Tides {
 		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
-			return nil, pzsvc.TraceErr(err)
+			return nil, util.TraceErr(err)
 		}
 	}
 	return fc, nil
@@ -201,7 +201,7 @@ func transformSRBody(body []byte) (*geojson.FeatureCollection, error) {
 		ok     bool
 	)
 	if fci, err = geojson.Parse(body); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
 		return nil, fmt.Errorf("Expected a FeatureCollection and got %v.", string(body))
@@ -244,12 +244,12 @@ func GetAsset(options AssetOptions, context Context) ([]byte, error) {
 		assets   Assets
 	)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID + "/assets/"}, context); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &assets); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	if options.activate && (assets.Analytic.Status == "inactive") {
 		go doRequest(doRequestInput{method: "POST", inputURL: assets.Analytic.Links.Activate}, context)
@@ -266,12 +266,12 @@ func GetMetadata(options AssetOptions, context Context) (*geojson.Feature, error
 		feature  geojson.Feature
 	)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID}, context); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &feature); err != nil {
-		return nil, pzsvc.TraceErr(err)
+		return nil, util.TraceErr(err)
 	}
 	return transformSRFeature(&feature), nil
 }
