@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
-	pzsvc "github.com/venicegeo/pzsvc-lib"
 )
 
 const fakeDiscoverURL = "foo://bar/planet/discover/REOrthoTile?PL_API_KEY=%v"
@@ -39,7 +39,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, ""), nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ := pzsvc.GetMockResponseWriter()
+	writer, _, _ := util.GetMockResponseWriter()
 	DiscoverHandler(writer, request)
 	if writer.StatusCode == http.StatusOK {
 		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
@@ -49,7 +49,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, os.Getenv("PL_API_KEY")), nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ = pzsvc.GetMockResponseWriter()
+	writer, _, _ = util.GetMockResponseWriter()
 	router := mux.NewRouter()
 	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
 	router.ServeHTTP(writer, request)
@@ -66,7 +66,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ = pzsvc.GetMockResponseWriter()
+	writer, _, _ = util.GetMockResponseWriter()
 
 	router.HandleFunc("/planet/asset/{itemType}/{id}", AssetHandler)
 	router.ServeHTTP(writer, request)
@@ -78,7 +78,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ = pzsvc.GetMockResponseWriter()
+	writer, _, _ = util.GetMockResponseWriter()
 	router.ServeHTTP(writer, request)
 	if writer.StatusCode == http.StatusOK {
 		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
@@ -91,7 +91,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ = pzsvc.GetMockResponseWriter()
+	writer, _, _ = util.GetMockResponseWriter()
 	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
 	router.ServeHTTP(writer, request)
 	if writer.StatusCode != http.StatusOK {
@@ -105,7 +105,7 @@ func TestHandlers(t *testing.T) {
 	if request, err = http.NewRequest("POST", assetURL, nil); err != nil {
 		t.Error(err.Error())
 	}
-	writer, _, _ = pzsvc.GetMockResponseWriter()
+	writer, _, _ = util.GetMockResponseWriter()
 	router.ServeHTTP(writer, request)
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)

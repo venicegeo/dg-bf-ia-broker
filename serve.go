@@ -22,11 +22,9 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	"github.com/venicegeo/bf-ia-broker/planet"
-
-	"gopkg.in/redis.v3"
 )
 
-func serve(redisClient *redis.Client) {
+func serve() {
 
 	portStr := ":8080"
 	router := mux.NewRouter()
@@ -54,6 +52,6 @@ var serveCmd = &cobra.Command{
 	Long: `
 Serve the image archive broker`,
 	Run: func(cmd *cobra.Command, args []string) {
-		serve(nil)
+		serve()
 	},
 }

@@ -4,8 +4,6 @@ import:
   version: ^1.1.0
 - package: github.com/spf13/cobra
 - package: github.com/venicegeo/geojson-go
+  version: ^0.1.0
   subpackages:
   - geojson
-- package: github.com/venicegeo/pzsvc-lib
-- package: gopkg.in/redis.v3
-  version: ^3.6.4

@@ -1,5 +1,5 @@
-hash: 7ecb306521194da3a60413a32c0079a8d64bdbfaafa7500ff9211789e0973c9f
-updated: 2016-12-09T22:12:46.252814458-05:00
+hash: e31061e735e885b2e1f45dd17a9b15a50f553636a60ad95b49068071f4d97c8c
+updated: 2016-12-15T11:22:40.957252816-05:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
@@ -8,22 +8,13 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/spf13/cobra
-  version: 9495bc009a56819bdb0ddbc1a373e29c140bc674
+  version: b62566898a99f2db9c68ed0026aa0a052e59678d
 - name: github.com/spf13/pflag
-  version: 5ccb023bc27df288a957c5e994cd44fd19619465
+  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
 - name: github.com/venicegeo/geojson-go
   version: ab7eb0e00662539522f8c72b7f878d7979412ded
   subpackages:
   - geojson
 - name: github.com/venicegeo/pzsvc-lib
   version: fca89502ff2ce249801471974ee338b472e7a9b3
-- name: gopkg.in/bsm/ratelimit.v1
-  version: db14e161995a5177acef654cb0dd785e8ee8bc22
-- name: gopkg.in/redis.v3
-  version: b5e368500d0a508ef8f16e9c2d4025a8a46bcc29
-  subpackages:
-  - internal
-  - internal/consistenthash
-  - internal/hashtag
-  - internal/pool
 testImports: []

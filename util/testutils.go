@@ -17,7 +17,6 @@ package util
 import (
 	"bytes"
 	"crypto/tls"
-	//  "fmt"
 	"io"
 	"net/http"
 )
@@ -47,7 +46,7 @@ func GetMockReadCloser(bodyString string) io.ReadCloser {
 }
 
 // SetMockClient is a utility function for testing purposes.  When called,
-// it sets the current pzsvc client to a mock client.  That client will accept
+// it sets the current client to a mock client.  That client will accept
 // any input, and immediately respond.  It's responses are determined by the
 // given string slice - it iterates through them one at a time until done,
 // with the http status as whatever is provided as such, and returns the
