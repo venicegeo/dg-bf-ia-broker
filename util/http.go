@@ -18,22 +18,12 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"time"
 )
-
-// HTTPError represents any HTTP error
-type HTTPError struct {
-	Status  int
-	Message string
-}
-
-func (err HTTPError) Error() string {
-	return fmt.Sprintf("%d: %v", err.Status, err.Message)
-}
 
 var httpClient *http.Client
 
@@ -69,9 +59,9 @@ func RequestKnownJSON(method, bodyStr, address, authKey string, outpObj interfac
 	if err != nil {
 		if resp != nil {
 			errByt, _ := ioutil.ReadAll(resp.Body)
-			return errByt, TraceErr(err)
+			return errByt, err
 		}
-		return nil, TraceErr(err)
+		return nil, err
 	}
 	return ReadBodyJSON(outpObj, resp.Body)
 }
@@ -81,11 +71,12 @@ func RequestKnownJSON(method, bodyStr, address, authKey string, outpObj interfac
 func ReqByObjJSON(method, addr, authKey string, inpObj, outpObj interface{}) ([]byte, error) {
 	byts, err := json.Marshal(inpObj)
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Json Marshal attempt failed."}
+
 	}
-	byts, err = RequestKnownJSON(method, string(byts), addr, "", outpObj)
-	if err != nil {
-		return nil, TraceErr(err)
+	byts, pErr := RequestKnownJSON(method, string(byts), addr, "", outpObj)
+	if pErr != nil {
+		return nil, pErr
 	}
 	return byts, nil
 }
@@ -102,35 +93,34 @@ func SubmitMultipart(bodyStr, address, filename, authKey string, fileData []byte
 	)
 
 	err = writer.WriteField("data", bodyStr)
-	fmt.Println(TraceStr("file upload initiated"))
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Could not write string " + bodyStr + "to message body: " + err.Error(), SimpleMsg: "Internal Error on file upload.  See logs."}
 	}
 
 	if fileData != nil {
 		var part io.Writer
 		part, err = writer.CreateFormFile("file", filename)
 		if err != nil {
-			return nil, TraceErr(err)
+			return nil, &Error{LogMsg: "Error on CreateFormFile: " + err.Error(), SimpleMsg: "Internal Error on file upload.  See logs."}
 		}
 		if part == nil {
-			return nil, ErrWithTrace("Failure in Form File Creation.")
+			return nil, &Error{LogMsg: "CreateFormFile returned empty form.", SimpleMsg: "Internal Error on file upload.  See logs."}
 		}
 
 		_, err = io.Copy(part, bytes.NewReader(fileData))
 		if err != nil {
-			return nil, TraceErr(err)
+			return nil, &Error{LogMsg: "Error on file data Copy: " + err.Error(), SimpleMsg: "Internal Error on file upload.  See logs."}
 		}
 	}
 
 	err = writer.Close()
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Error on Writer close: " + err.Error(), SimpleMsg: "Internal Error on file upload.  See logs."}
 	}
 
 	fileReq, err := http.NewRequest("POST", address, body)
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Error on Request creation: " + err.Error(), SimpleMsg: "Internal Error on file upload.  See logs."}
 	}
 
 	fileReq.Header.Add("Content-Type", writer.FormDataContentType())
@@ -138,12 +128,13 @@ func SubmitMultipart(bodyStr, address, filename, authKey string, fileData []byte
 
 	resp, err := client.Do(fileReq)
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Error on POST multipart: " + err.Error(), url: address, request: bodyStr, SimpleMsg: "HTTP error on file upload.  See logs."}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
 		errByt, _ := ioutil.ReadAll(resp.Body)
-		return resp, ErrWithTrace("Failed to POST multipart to " + address + " Status: " + resp.Status + "\n" + string(errByt))
+		outMsg := "Received " + http.StatusText(resp.StatusCode) + " on multipart POST call to " + address + ".  Further details logged."
+		return resp, &Error{LogMsg: "Failed multipart HTTP request", url: address, request: bodyStr, response: string(errByt), httpStatus: resp.StatusCode, SimpleMsg: outMsg}
 	}
 	return resp, nil
 }
@@ -159,19 +150,19 @@ func SubmitSinglePart(method, bodyStr, url, authKey string) (*http.Response, err
 	)
 
 	if method == "" || url == "" {
-		return nil, ErrWithTrace(`method:"` + method + `", url:"` + url + `".  You must have both.`)
+		return nil, &Error{LogMsg: `method:"` + method + `", url:"` + url + `".  You must have both.`}
 	}
 
 	if bodyStr != "" {
 		fileReq, err = http.NewRequest(method, url, bytes.NewBuffer([]byte(bodyStr)))
 		if err != nil {
-			return nil, TraceErr(err)
+			return nil, &Error{LogMsg: err.Error()}
 		}
 		fileReq.Header.Add("Content-Type", "application/json")
 	} else {
 		fileReq, err = http.NewRequest(method, url, nil)
 		if err != nil {
-			return nil, TraceErr(err)
+			return nil, &Error{LogMsg: err.Error()}
 		}
 	}
 
@@ -179,15 +170,70 @@ func SubmitSinglePart(method, bodyStr, url, authKey string) (*http.Response, err
 
 	resp, err := client.Do(fileReq)
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: err.Error(), request: bodyStr}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
 		errByt, _ := ioutil.ReadAll(resp.Body)
-		return resp, ErrWithTrace("Failed in " + method + " call to " + url + ".  Status : " + resp.Status + "\nRequest: " + bodyStr + "\nResponse: " + string(errByt))
+
+		outMsg := "Received " + http.StatusText(resp.StatusCode) + " on call to " + url + ".  Further details logged."
+		return resp, &Error{LogMsg: "Failed HTTP request", request: bodyStr, response: string(errByt), url: url, httpStatus: resp.StatusCode, SimpleMsg: outMsg}
 	}
 
 	return resp, nil
+}
+
+// GetJobResponse will repeatedly poll the job status on the given job Id
+// until job completion, then acquires and returns the DataResult.
+func GetJobResponse(jobID, pzAddr, authKey string) (*DataResult, error) {
+
+	if jobID == "" {
+		return nil, &Error{LogMsg: `JobID not provided.  Cannot get Job Response.`}
+	}
+
+	for i := 0; i < 300; i++ { // will wait up to 5 minutes
+
+		var outpObj struct {
+			Data JobStatusResp `json:"data,omitempty"`
+		}
+		respBuf, err := RequestKnownJSON("GET", "", pzAddr+"/job/"+jobID, authKey, &outpObj)
+		if err != nil {
+			return nil, err
+		}
+
+		respObj := &outpObj.Data
+		if respObj.Status == "Submitted" ||
+			respObj.Status == "Running" ||
+			respObj.Status == "Pending" ||
+			(respObj.Status == "Success" && respObj.Result == nil) ||
+			(respObj.Status == "Error" && respObj.Result.Message == "Job Not Found.") {
+			time.Sleep(time.Second)
+		} else {
+			if respObj.Status == "Success" {
+				return respObj.Result, nil
+			}
+			if respObj.Status == "Fail" {
+				return nil, &Error{LogMsg: "Piazza failure when acquiring DataId.  Response json: " + string(respBuf)}
+			}
+			if respObj.Status == "Error" {
+				return nil, &Error{LogMsg: "Piazza error when acquiring DataId.  Response json: " + string(respBuf)}
+			}
+			return nil, &Error{LogMsg: `Unknown status "` + respObj.Status + `" when acquiring DataId.  Response json: ` + string(respBuf)}
+		}
+	}
+
+	return nil, &Error{LogMsg: "Job never completed.  JobId: " + jobID}
+}
+
+// GetJobID is a simple function to extract the job ID from
+// the standard response to job-creating Pz calls
+func GetJobID(resp *http.Response) (string, error) {
+	var respObj JobInitResp
+	byts, err := ReadBodyJSON(&respObj, resp.Body)
+	if respObj.Data.JobID == "" && err == nil {
+		return "", &Error{LogMsg: "Response did not contain Job ID.  initial response: " + string(byts)}
+	}
+	return respObj.Data.JobID, err
 }
 
 // ReadBodyJSON takes the body of either a request object or a response
@@ -197,13 +243,23 @@ func SubmitSinglePart(method, bodyStr, url, authKey string) (*http.Response, err
 func ReadBodyJSON(output interface{}, body io.ReadCloser) ([]byte, error) {
 	rBytes, err := ioutil.ReadAll(body)
 	if err != nil {
-		return nil, TraceErr(err)
+		return nil, &Error{LogMsg: "Could not read HTTP response."}
 	}
 	err = json.Unmarshal(rBytes, output)
 	if err != nil {
-		return nil, ErrWithTrace("Unmarshal failed: " + err.Error() + ".  Original input: " + string(rBytes) + ".")
+		return nil, &Error{LogMsg: "Unmarshal failed: " + err.Error() + ".  Original input: " + string(rBytes) + ".", SimpleMsg: "JSON error when reading HTTP Response.  See log."}
 	}
-	return rBytes, TraceErr(err)
+	return rBytes, nil
+}
+
+// CheckAuth verifies that the given API key is valid for the given
+// Piazza address
+func CheckAuth(pzAddr, pzAuth string) *Error {
+	_, err := SubmitSinglePart("GET", "", pzAddr+"/service", pzAuth)
+	if err != nil {
+		return &Error{LogMsg: "Could not confirm user authorization."}
+	}
+	return nil
 }
 
 // HTTPOut outputs the given string on the given responseWriter
@@ -235,7 +291,7 @@ func Preflight(w http.ResponseWriter, r *http.Request) bool {
 func PrintJSON(w http.ResponseWriter, output interface{}, httpStatus int) []byte {
 	outBuf, err := json.Marshal(output)
 	if err != nil {
-		HTTPOut(w, `{"Errors":"JSON marshal failure: `+TraceStr(err.Error())+`"}`, http.StatusInternalServerError)
+		HTTPOut(w, `{"Errors":"JSON marshal failure on output: `+err.Error()+`"}`, http.StatusInternalServerError)
 	} else {
 		HTTPOut(w, string(outBuf), httpStatus)
 	}

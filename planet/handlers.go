@@ -15,6 +15,7 @@
 package planet
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -24,6 +25,7 @@ import (
 )
 
 const noPlanetKey = "This operation requires a Planet Labs API key."
+const noPlanetImageID = "This operation requires a Planet Labs image ID."
 
 // DiscoverHandler is a handler for /planet/discover
 // @Title planetDiscoverHandler
@@ -40,50 +42,57 @@ const noPlanetKey = "This operation requires a Planet Labs API key."
 // @Router /planet/discover/{itemType} [get]
 func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
-		fc        *geojson.FeatureCollection
-		err       error
-		planetKey string
-		itemType  string
-		bytes     []byte
-		bbox      geojson.BoundingBox
+		fc       *geojson.FeatureCollection
+		err      error
+		itemType string
+		bytes    []byte
+		bbox     geojson.BoundingBox
+		context  Context
 	)
+
+	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+
 	if util.Preflight(writer, request) {
 		return
 	}
 
-	tides, _ := strconv.ParseBool(request.FormValue("tides"))
-	planetKey = request.FormValue("PL_API_KEY")
-	if planetKey == "" {
+	context.PlanetKey = request.FormValue("PL_API_KEY")
+	if context.PlanetKey == "" {
+		util.LogAlert(&context, noPlanetKey)
 		http.Error(writer, noPlanetKey, http.StatusBadRequest)
 		return
 	}
+
+	tides, _ := strconv.ParseBool(request.FormValue("tides"))
 
 	itemType = mux.Vars(request)["itemType"]
 
 	bboxString := request.FormValue("bbox")
 	if bboxString != "" {
 		if bbox, err = geojson.NewBoundingBox(bboxString); err != nil {
-			http.Error(writer, "The bbox value of "+bboxString+" is invalid: "+err.Error(), http.StatusBadRequest)
+			message := fmt.Sprintf("The bbox value of %v is invalid: %v", bboxString, err.Error())
+			util.LogAlert(&context, message)
+			http.Error(writer, message, http.StatusBadRequest)
 			return
 		}
 	}
 
 	options := SearchOptions{
-		Bbox: bbox}
-	context := Context{
-		ItemType:  itemType,
-		Tides:     tides,
-		PlanetKey: planetKey}
+		ItemType: itemType,
+		Tides:    tides,
+		Bbox:     bbox}
 
 	if fc, err = GetScenes(options, context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
-			http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
+			message := fmt.Sprintf("Failed to write output GeoJSON: %v\n%#v", err.Error(), fc)
+			util.LogAlert(&context, message)
+			http.Error(writer, message, http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
 	} else {
-		http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
+		http.Error(writer, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -94,6 +103,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
 // @Param   itemType        path    string  true        "Planet Labs Item Type, e.g., REOrthoTile"
 // @Param   id              path    string  true         "Planet Labs image ID"
+// @Param   tides           query   bool    false        "True: incorporate tide prediction in the output"
 // @Success 200 {object}  string
 // @Failure 400 {object}  string
 // @Router /planet/asset/{itemType}/{id} [get,post]
@@ -104,23 +114,30 @@ func AssetHandler(writer http.ResponseWriter, request *http.Request) {
 		result  []byte
 		options AssetOptions
 	)
+
+	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+
 	if util.Preflight(writer, request) {
 		return
 	}
-	vars := mux.Vars(request)
-	options.ID = vars["id"]
-	if options.ID == "" {
-		http.Error(writer, "This operation requires a Planet Labs image ID.", http.StatusBadRequest)
-		return
-	}
+
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
-		http.Error(writer, "This operation requires a Planet Labs API key.", http.StatusBadRequest)
+		util.LogAlert(&context, noPlanetKey)
+		http.Error(writer, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
-	context.ItemType = vars["itemType"]
+	vars := mux.Vars(request)
+	options.ID = vars["id"]
+	if options.ID == "" {
+		util.LogAlert(&context, noPlanetImageID)
+		http.Error(writer, noPlanetImageID, http.StatusBadRequest)
+		return
+	}
+
+	options.ItemType = vars["itemType"]
 
 	if request.Method == "POST" {
 		options.activate = true
@@ -152,13 +169,16 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		bytes   []byte
 		options AssetOptions
 	)
+
+	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+
 	if util.Preflight(writer, request) {
 		return
 	}
 	vars := mux.Vars(request)
 	options.ID = vars["id"]
 	if options.ID == "" {
-		http.Error(writer, "This operation requires a Planet Labs image ID.", http.StatusBadRequest)
+		http.Error(writer, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
 	context.PlanetKey = request.FormValue("PL_API_KEY")
@@ -168,11 +188,12 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	context.ItemType = vars["itemType"]
+	options.ItemType = vars["itemType"]
 
 	if feature, err = GetMetadata(options, context); err == nil {
 		if bytes, err = geojson.Write(feature); err != nil {
-			http.Error(writer, util.TraceStr(err.Error()), http.StatusInternalServerError)
+			////
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")

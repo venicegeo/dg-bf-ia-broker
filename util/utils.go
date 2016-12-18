@@ -22,15 +22,6 @@ import (
 	"strconv"
 )
 
-// Error is a type designed for easy serialization to JSON
-type Error struct {
-	Message string `json:"error"`
-}
-
-func (err Error) Error() string {
-	return err.Message
-}
-
 // traceCore is the core behind TraceStr, TraceErr, and ErrWithTrace.
 // We'd have used TraceStr instead, but the way that runtime.Caller
 // works means that they have to all be the same function depth away.
@@ -47,15 +38,6 @@ func traceCore(errStr string) string {
 // useful in logging.
 func TraceStr(errStr string) string {
 	return traceCore(errStr)
-}
-
-// TraceErr is a simple utility function for adding a local filename and line number
-// on to the beginning of an error message before passing it along.
-func TraceErr(err error) error {
-	if err != nil {
-		return errors.New(traceCore(err.Error()))
-	}
-	return nil
 }
 
 // ErrWithTrace is a simple utility function for generating an error based on

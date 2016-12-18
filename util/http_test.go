@@ -15,19 +15,9 @@
 package util
 
 import (
-	//"bytes"
-	//	"encoding/json"
-	//	"errors"
-	//	"fmt"
-	//  "io"
-
 	"io/ioutil"
-	//	"mime/multipart"
 	"net/http"
-	//	"net/url"
-
 	"testing"
-	//	"time"
 )
 
 func TestSubmitSinglePart(t *testing.T) {
@@ -39,7 +29,7 @@ func TestSubmitSinglePart(t *testing.T) {
 
 	resp, err := SubmitSinglePart(method, bodyStr, url, authKey)
 	if err != nil {
-		t.Error(`received error on basic test of SubmitSinglePart.  Error message: `, err.Error())
+		t.Error(`received error on basic test of SubmitSinglePart.  Error message: ` + err.Error())
 	} else {
 		req := (*http.Request)(resp.Request)
 		if req.Header.Get("Content-Type") != "application/json" {
@@ -83,7 +73,7 @@ func TestSubmitMultipart(t *testing.T) {
 
 	_, err := SubmitMultipart(bodyStr, url, fileName, authKey, testData)
 	if err != nil {
-		t.Error(`TestSubmitMultipart: failed on what shoudl have been good run.`)
+		t.Errorf("TestSubmitMultipart: failed on what should have been good run. %v", err.Error())
 	}
 	SetMockClient(nil, 550)
 	_, err = SubmitMultipart(bodyStr, url, fileName, authKey, testData)
@@ -106,7 +96,8 @@ func TestRequestKnownJSON(t *testing.T) {
 	jp := make(map[string]interface{})
 	_, err := RequestKnownJSON(method, bodyStr, url, authKey, &jp)
 	if err != nil {
-		t.Error(`TestRequestKnownJSON: failed on what shoudl have been clean run.`)
+		t.Errorf("TestSubmitMultipart: failed on what should have been good run. %T", err)
+		t.Errorf("TestSubmitMultipart: failed on what should have been good run. %v", err.Error())
 	}
 	_, err = RequestKnownJSON(method, bodyStr, url, authKey, &jp)
 	if err == nil {

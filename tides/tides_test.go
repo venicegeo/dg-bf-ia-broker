@@ -15,7 +15,6 @@
 package tides
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/venicegeo/geojson-go/geojson"
@@ -27,14 +26,18 @@ func TestTides(t *testing.T) {
 		fci     interface{}
 		context Context
 		fc      *geojson.FeatureCollection
-		bytes   []byte
+		ok      bool
 	)
 	if fci, err = geojson.ParseFile("test/fc.geojson"); err != nil {
-		t.Errorf("Expected to load file but received: %v", err.Error())
+		t.Fatalf("Expected to load file but received: %v", err.Error())
 	}
-	if fc, err = GetTides(fci.(*geojson.FeatureCollection), context); err != nil {
-		t.Errorf("Expected GetTides to succeed but received: %v", err.Error())
+	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
+		t.Fatalf("Expected FeatureCollection but received %T", fci)
 	}
-	bytes, err = geojson.Write(fc)
-	fmt.Print(string(bytes))
+	if fc, err = GetTides(fc, context); err != nil {
+		t.Fatalf("Expected GetTides to succeed but received: %v", err.Error())
+	}
+	if _, err = geojson.Write(fc); err != nil {
+		t.Errorf("Failed to export output from GeoJSON: %v\n%#v", err.Error(), fc)
+	}
 }

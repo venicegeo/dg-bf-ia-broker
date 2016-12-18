@@ -31,7 +31,7 @@ func TestPlanet(t *testing.T) {
 	)
 
 	context.PlanetKey = os.Getenv("PL_API_KEY")
-	context.ItemType = "REOrthoTile"
+	options.ItemType = "REOrthoTile"
 
 	body := `{ 
    "item_types":[  
@@ -70,7 +70,7 @@ func TestPlanet(t *testing.T) {
 	}
 
 	// Test 5 - Tides
-	context.Tides = true
+	options.Tides = true
 	var scenes *geojson.FeatureCollection
 	if scenes, err = GetScenes(options, context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
@@ -78,7 +78,7 @@ func TestPlanet(t *testing.T) {
 
 	// Test - Metadata
 	var feature *geojson.Feature
-	aOptions := AssetOptions{ID: scenes.Features[0].IDStr(), activate: true}
+	aOptions := AssetOptions{ID: scenes.Features[0].IDStr(), activate: true, ItemType: "REOrthoTile"}
 	if feature, err = GetMetadata(aOptions, context); err != nil {
 		t.Errorf("Failed to get asset; received: %v", err.Error())
 	}

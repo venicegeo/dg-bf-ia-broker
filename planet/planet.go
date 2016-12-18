@@ -41,13 +41,32 @@ func init() {
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
-	ItemType  string
-	Tides     bool
 	PlanetKey string
+	sessionID string
+}
+
+// AppName returns an empty string
+func (c *Context) AppName() string {
+	return "bf-ia-broker"
+}
+
+// SessionID returns a Session ID, creating one if needed
+func (c *Context) SessionID() string {
+	if c.sessionID == "" {
+		c.sessionID, _ = util.PsuUUID()
+	}
+	return c.sessionID
+}
+
+// LogRootDir returns an empty string
+func (c *Context) LogRootDir() string {
+	return ""
 }
 
 // SearchOptions are the search options for a quick-search request
 type SearchOptions struct {
+	ItemType        string
+	Tides           bool
 	AcquiredDate    string
 	MaxAcquiredDate string
 	Bbox            geojson.BoundingBox
@@ -106,11 +125,16 @@ func doRequest(input doRequestInput, context Context) (*http.Response, error) {
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
 
 		if parsedURL, err = url.Parse(resolvedURL.String()); err != nil {
+			err = fmt.Errorf("Failed to parse %v into a URL: %v", resolvedURL.String(), err.Error())
+			util.LogAlert(&context, err.Error())
 			return nil, err
 		}
 		inputURL = parsedURL.String()
 	}
+	util.LogInfo(&context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
 	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
+		err = fmt.Errorf("Failed to make a new HTTP request for %v: %v", inputURL, err.Error())
+		util.LogAlert(&context, err.Error())
 		return nil, err
 	}
 	if input.contentType != "" {
@@ -157,7 +181,7 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 		fc       *geojson.FeatureCollection
 	)
 
-	req.ItemTypes = append(req.ItemTypes, context.ItemType)
+	req.ItemTypes = append(req.ItemTypes, options.ItemType)
 	req.Filter.Type = "AndFilter"
 	req.Filter.Config = make([]interface{}, 0)
 	if options.Bbox != nil {
@@ -172,27 +196,29 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
 	if body, err = json.Marshal(req); err != nil {
-		return nil, util.TraceErr(err)
+		err = fmt.Errorf("Failed to marshal request object %#v: %v", req, err.Error())
+		util.LogAlert(&context, err.Error())
+		return nil, err
 	}
 	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
-		return nil, util.TraceErr(err)
+		return nil, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
-	if fc, err = transformSRBody(body); err != nil {
-		return nil, util.TraceErr(err)
+	if fc, err = transformSRBody(body, context); err != nil {
+		return nil, err
 	}
-	if context.Tides {
+	if options.Tides {
 		var context tides.Context
 		if fc, err = tides.GetTides(fc, context); err != nil {
-			return nil, util.TraceErr(err)
+			return nil, err
 		}
 	}
 	return fc, nil
 }
 
 // Transforms search results into a FeatureCollection for later use
-func transformSRBody(body []byte) (*geojson.FeatureCollection, error) {
+func transformSRBody(body []byte, context Context) (*geojson.FeatureCollection, error) {
 	var (
 		result *geojson.FeatureCollection
 		fc     *geojson.FeatureCollection
@@ -201,10 +227,16 @@ func transformSRBody(body []byte) (*geojson.FeatureCollection, error) {
 		ok     bool
 	)
 	if fci, err = geojson.Parse(body); err != nil {
-		return nil, util.TraceErr(err)
+		err = fmt.Errorf("Failed to parse GeoJSON: %v" + err.Error())
+		util.LogAlert(&context, err.Error())
+		util.LogInfo(&context, string(body))
+		return nil, err
 	}
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
-		return nil, fmt.Errorf("Expected a FeatureCollection and got %v.", string(body))
+		err = fmt.Errorf("Expected a FeatureCollection and got %T", fci)
+		util.LogAlert(&context, err.Error())
+		util.LogInfo(&context, string(body))
+		return nil, err
 	}
 	features := make([]*geojson.Feature, len(fc.Features))
 	for inx, curr := range fc.Features {
@@ -232,6 +264,7 @@ func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 type AssetOptions struct {
 	ID       string
 	activate bool
+	ItemType string
 }
 
 // GetAsset returns the status of the analytic asset and
@@ -243,13 +276,18 @@ func GetAsset(options AssetOptions, context Context) ([]byte, error) {
 		body     []byte
 		assets   Assets
 	)
-	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID + "/assets/"}, context); err != nil {
-		return nil, util.TraceErr(err)
+	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"}, context); err != nil {
+		err = fmt.Errorf("Failed to get asset metadata for %v: %v", options.ID, err.Error())
+		util.LogAlert(&context, err.Error())
+		return nil, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &assets); err != nil {
-		return nil, util.TraceErr(err)
+		err = fmt.Errorf("Failed to Unmarshal response: %v", err.Error())
+		util.LogAlert(&context, err.Error())
+		util.LogInfo(&context, string(body))
+		return nil, err
 	}
 	if options.activate && (assets.Analytic.Status == "inactive") {
 		go doRequest(doRequestInput{method: "POST", inputURL: assets.Analytic.Links.Activate}, context)
@@ -265,13 +303,20 @@ func GetMetadata(options AssetOptions, context Context) (*geojson.Feature, error
 		body     []byte
 		feature  geojson.Feature
 	)
-	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + context.ItemType + "/items/" + options.ID}, context); err != nil {
-		return nil, util.TraceErr(err)
+	util.LogInfo(&context, "Calling Planet Labs to get metadata for scene "+options.ID)
+	input := doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + options.ItemType + "/items/" + options.ID}
+	if response, err = doRequest(input, context); err != nil {
+		err = fmt.Errorf("Failed to get metadata for %v: %v", options.ID, err.Error())
+		util.LogAlert(&context, err.Error())
+		return nil, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &feature); err != nil {
-		return nil, util.TraceErr(err)
+		err = fmt.Errorf("Failed to Unmarshal response: %v", err.Error())
+		util.LogAlert(&context, err.Error())
+		util.LogInfo(&context, string(body))
+		return nil, err
 	}
 	return transformSRFeature(&feature), nil
 }

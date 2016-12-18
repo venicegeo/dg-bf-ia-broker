@@ -86,7 +86,6 @@ func TestHandlers(t *testing.T) {
 
 	// Test: Metadata (happy)
 	metadataURL := fmt.Sprintf(fakeMetadataURL, id, os.Getenv("PL_API_KEY"))
-	fmt.Print(metadataURL)
 
 	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
 		t.Error(err.Error())
@@ -97,8 +96,6 @@ func TestHandlers(t *testing.T) {
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
-
-	fmt.Print(writer.OutputString)
 
 	// Test: Activate (happy)
 	assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
