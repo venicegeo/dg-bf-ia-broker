@@ -97,6 +97,18 @@ func TestHandlers(t *testing.T) {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
 
+	// Test: Metadata (no image ID)
+	metadataURL = fmt.Sprintf(fakeMetadataURL, "", os.Getenv("PL_API_KEY"))
+
+	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
+		t.Error(err.Error())
+	}
+	writer, _, _ = util.GetMockResponseWriter()
+	router.ServeHTTP(writer, request)
+	if writer.StatusCode == http.StatusOK {
+		t.Error("Expected request to fail but it succeeded.")
+	}
+
 	// Test: Activate (happy)
 	assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
 	if request, err = http.NewRequest("POST", assetURL, nil); err != nil {

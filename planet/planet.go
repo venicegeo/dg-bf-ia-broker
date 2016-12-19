@@ -35,6 +35,7 @@ var baseURLString string
 func init() {
 	baseURLString = os.Getenv("PL_API_URL")
 	if baseURLString == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
 		baseURLString = "https://api.planet.com/"
 	}
 }
@@ -136,37 +137,11 @@ type doRequestInput struct {
 	contentType string
 }
 
-// doRequest performs the request
-func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
-	var (
-		request   *http.Request
-		parsedURL *url.URL
-		inputURL  string
-		err       error
-	)
-	inputURL = input.inputURL
-	if !strings.Contains(inputURL, baseURLString) {
-		baseURL, _ := url.Parse(baseURLString)
-		parsedRelativeURL, _ := url.Parse(input.inputURL)
-		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
-
-		if parsedURL, err = url.Parse(resolvedURL.String()); err != nil {
-			err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse %v into a URL.", resolvedURL.String()), err)
-			return nil, err
-		}
-		inputURL = parsedURL.String()
-	}
-	util.LogInfo(context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
-	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
-		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
-		return nil, err
-	}
-	if input.contentType != "" {
-		request.Header.Set("Content-Type", input.contentType)
-	}
-
-	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
-	return util.HTTPClient().Do(request)
+// AssetOptions are the options for the Asset func
+type AssetOptions struct {
+	ID       string
+	activate bool
+	ItemType string
 }
 
 // GetScenes returns a FeatureCollection containing the scenes requested
@@ -214,54 +189,6 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 	return fc, nil
 }
 
-// Transforms search results into a FeatureCollection for later use
-func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection, error) {
-	var (
-		result *geojson.FeatureCollection
-		fc     *geojson.FeatureCollection
-		fci    interface{}
-		err    error
-		ok     bool
-	)
-	if fci, err = geojson.Parse(body); err != nil {
-		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse GeoJSON.\n%v", string(body)), err)
-		return nil, err
-	}
-	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
-		err = fmt.Errorf("Expected a FeatureCollection and got %T\n%v", fci, string(body))
-		////
-		util.LogAlert(context, err.Error())
-		return nil, err
-	}
-	features := make([]*geojson.Feature, len(fc.Features))
-	for inx, curr := range fc.Features {
-		features[inx] = transformSRFeature(curr)
-	}
-	result = geojson.NewFeatureCollection(features)
-	return result, nil
-}
-
-func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
-	properties := make(map[string]interface{})
-	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64)
-	id := feature.IDStr()
-	properties["resolution"] = feature.Properties["gsd"].(float64)
-	adString := feature.Properties["acquired"].(string)
-	properties["acquiredDate"] = adString
-	properties["fileFormat"] = "geotiff"
-	properties["sensorName"] = feature.Properties["satellite_id"].(string)
-	result := geojson.NewFeature(feature.Geometry, id, properties)
-	result.Bbox = result.ForceBbox()
-	return result
-}
-
-// AssetOptions are the options for the Asset func
-type AssetOptions struct {
-	ID       string
-	activate bool
-	ItemType string
-}
-
 // GetAsset returns the status of the analytic asset and
 // attempts to activate it if needed
 func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
@@ -274,7 +201,6 @@ func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
 	util.LogInfo(context, "Calling Planet Labs "+inputURL)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
-		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to get asset metadata for %v.", options.ID), err)
 		return nil, err
 	}
 	defer response.Body.Close()
@@ -306,7 +232,6 @@ func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, erro
 	util.LogInfo(context, "Calling Planet Labs "+inputURL)
 	input := doRequestInput{method: "GET", inputURL: inputURL}
 	if response, err = doRequest(input, context); err != nil {
-		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to get metadata for %v.", options.ID), err)
 		return nil, err
 	}
 	defer response.Body.Close()
@@ -321,4 +246,79 @@ func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, erro
 		return nil, err
 	}
 	return transformSRFeature(&feature), nil
+}
+
+// doRequest performs the request
+func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
+	var (
+		request   *http.Request
+		parsedURL *url.URL
+		inputURL  string
+		err       error
+	)
+	////
+	inputURL = input.inputURL
+	if !strings.Contains(inputURL, baseURLString) {
+		baseURL, _ := url.Parse(baseURLString)
+		parsedRelativeURL, _ := url.Parse(input.inputURL)
+		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
+
+		if parsedURL, err = url.Parse(resolvedURL.String()); err != nil {
+			err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse %v into a URL.", resolvedURL.String()), err)
+			return nil, err
+		}
+		inputURL = parsedURL.String()
+	}
+	util.LogInfo(context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
+	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
+		return nil, err
+	}
+	if input.contentType != "" {
+		request.Header.Set("Content-Type", input.contentType)
+	}
+
+	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
+	return util.HTTPClient().Do(request)
+}
+
+// Transforms search results into a FeatureCollection for later use
+func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection, error) {
+	var (
+		result *geojson.FeatureCollection
+		fc     *geojson.FeatureCollection
+		fci    interface{}
+		err    error
+		ok     bool
+	)
+	if fci, err = geojson.Parse(body); err != nil {
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse GeoJSON.\n%v", string(body)), err)
+		return nil, err
+	}
+	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
+		plErr := util.Error{SimpleMsg: fmt.Sprintf("Expected a FeatureCollection and got %T", fci),
+			Request: string(body)}
+		err = plErr.Log(context, "")
+		return nil, err
+	}
+	features := make([]*geojson.Feature, len(fc.Features))
+	for inx, curr := range fc.Features {
+		features[inx] = transformSRFeature(curr)
+	}
+	result = geojson.NewFeatureCollection(features)
+	return result, nil
+}
+
+func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
+	properties := make(map[string]interface{})
+	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64)
+	id := feature.IDStr()
+	properties["resolution"] = feature.Properties["gsd"].(float64)
+	adString := feature.Properties["acquired"].(string)
+	properties["acquiredDate"] = adString
+	properties["fileFormat"] = "geotiff"
+	properties["sensorName"] = feature.Properties["satellite_id"].(string)
+	result := geojson.NewFeature(feature.Geometry, id, properties)
+	result.Bbox = result.ForceBbox()
+	return result
 }
