@@ -25,10 +25,10 @@ type Error struct {
 	hasLogged  bool   // whether or not this Error has been logged
 	LogMsg     string // message to enter into logs
 	SimpleMsg  string // simplified message to return to user via rest endpoint
-	request    string // http request body associated with the error (if any)
-	response   string // http response body assocaited with the error (if any)
-	url        string // url associated with the error (if any)
-	httpStatus int    // http status associated with the error (if any)
+	Request    string // http request body associated with the error (if any)
+	Response   string // http response body assocaited with the error (if any)
+	URL        string // url associated with the error (if any)
+	HTTPStatus int    // http status associated with the error (if any)
 }
 
 //
@@ -47,17 +47,17 @@ type Error struct {
 func (err Error) GenExtendedMsg() string {
 	lineBreak := "\n/**************************************/\n"
 	outBody := "Http Error: " + err.LogMsg + lineBreak
-	if err.url != "" {
-		outBody += "\nURL: " + err.url + "\n"
+	if err.URL != "" {
+		outBody += "\nURL: " + err.URL + "\n"
 	}
-	if err.request != "" {
-		outBody += "\nRequest: " + err.request + "\n"
+	if err.Request != "" {
+		outBody += "\nRequest: " + err.Request + "\n"
 	}
-	if err.response != "" {
-		outBody += "\nResponse: " + err.response + "\n"
+	if err.Response != "" {
+		outBody += "\nResponse: " + err.Response + "\n"
 	}
-	if http.StatusText(err.httpStatus) != "" {
-		outBody += "\nHTTP Status: " + http.StatusText(err.httpStatus) + "\n"
+	if http.StatusText(err.HTTPStatus) != "" {
+		outBody += "\nHTTP Status: " + http.StatusText(err.HTTPStatus) + "\n"
 	}
 	outBody += lineBreak
 	return outBody
@@ -79,7 +79,7 @@ func (err *Error) Log(s LogContext, msgAdd string) LoggedError {
 			err.LogMsg = msgAdd + ": " + err.LogMsg
 		}
 		outMsg := err.LogMsg
-		if err.request != "" || err.response != "" {
+		if err.Request != "" || err.Response != "" {
 			outMsg = err.GenExtendedMsg()
 		}
 		logMessage(s, "ERROR", outMsg)
@@ -90,25 +90,12 @@ func (err *Error) Log(s LogContext, msgAdd string) LoggedError {
 	return fmt.Errorf(err.Error())
 }
 
-// LogSimpleErr posts a logMessage call for simple error messages, and produces a pzsvc.Error
-// from the result.  The point is mostly to maintain uniformity of appearance and behavior.
-func LogSimpleErr(s LogContext, message string, err error) LoggedError {
-	if err != nil {
-		message += err.Error()
-	}
-	logMessage(s, "ERROR", message)
-	return fmt.Errorf(message)
-}
-
 // Error here is intended to let pzsvc.Error objects serve the error interface, and,
 // by extension, to let them be passed around as interfaces in palces that aren't
 // importing pzsvc-lib and used in a reasonable manner
 func (err Error) Error() string {
-	fmt.Print("E1")
 	if err.SimpleMsg != "" {
-		fmt.Print("E2")
 		return err.SimpleMsg
 	}
-	fmt.Print("E3")
 	return err.LogMsg
 }

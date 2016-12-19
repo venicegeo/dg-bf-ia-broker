@@ -34,7 +34,7 @@ func TestTides(t *testing.T) {
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
 		t.Fatalf("Expected FeatureCollection but received %T", fci)
 	}
-	if fc, err = GetTides(fc, context); err != nil {
+	if fc, err = GetTides(fc, &context); err != nil {
 		t.Fatalf("Expected GetTides to succeed but received: %v", err.Error())
 	}
 	if _, err = geojson.Write(fc); err != nil {

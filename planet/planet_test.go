@@ -45,7 +45,7 @@ func TestPlanet(t *testing.T) {
 }`
 
 	// Test 1 - No parameters
-	if _, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: []byte(body), contentType: "application/json"}, context); err != nil {
+	if _, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: []byte(body), contentType: "application/json"}, &context); err != nil {
 		t.Errorf("Expected request to succeed; received: %v", err.Error())
 	}
 
@@ -53,40 +53,40 @@ func TestPlanet(t *testing.T) {
 	if options.Bbox, err = geojson.NewBoundingBox("139,50,140,51"); err != nil {
 		t.Errorf("Expected NewBoundingBox to succeed; received: %v", err.Error())
 	}
-	if _, err = GetScenes(options, context); err != nil {
+	if _, err = GetScenes(options, &context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
 
 	// Test 3 - Cloud Cover
 	options.CloudCover = 0.01
-	if _, err = GetScenes(options, context); err != nil {
+	if _, err = GetScenes(options, &context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
 
 	// Test 4 - Acquired Date
 	options.AcquiredDate = "2016-01-01T00:00:00Z"
-	if _, err = GetScenes(options, context); err != nil {
+	if _, err = GetScenes(options, &context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
 
 	// Test 5 - Tides
 	options.Tides = true
 	var scenes *geojson.FeatureCollection
-	if scenes, err = GetScenes(options, context); err != nil {
+	if scenes, err = GetScenes(options, &context); err != nil {
 		t.Errorf("Expected GetScenes to succeed; received: %v", err.Error())
 	}
 
 	// Test - Metadata
 	var feature *geojson.Feature
 	aOptions := AssetOptions{ID: scenes.Features[0].IDStr(), activate: true, ItemType: "REOrthoTile"}
-	if feature, err = GetMetadata(aOptions, context); err != nil {
+	if feature, err = GetMetadata(aOptions, &context); err != nil {
 		t.Errorf("Failed to get asset; received: %v", err.Error())
 	}
 	b, _ := geojson.Write(feature)
 	fmt.Print(string(b))
 
 	// Test - Activation
-	if _, err = GetAsset(aOptions, context); err != nil {
+	if _, err = GetAsset(aOptions, &context); err != nil {
 		t.Errorf("Failed to get asset; received: %v", err.Error())
 	}
 }

@@ -70,9 +70,8 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	bboxString := request.FormValue("bbox")
 	if bboxString != "" {
 		if bbox, err = geojson.NewBoundingBox(bboxString); err != nil {
-			message := fmt.Sprintf("The bbox value of %v is invalid: %v", bboxString, err.Error())
-			util.LogAlert(&context, message)
-			http.Error(writer, message, http.StatusBadRequest)
+			err = util.LogSimpleErr(&context, fmt.Sprintf("The bbox value of %v is invalid", bboxString), err)
+			http.Error(writer, err.Error(), http.StatusBadRequest)
 			return
 		}
 	}
@@ -82,11 +81,10 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		Tides:    tides,
 		Bbox:     bbox}
 
-	if fc, err = GetScenes(options, context); err == nil {
+	if fc, err = GetScenes(options, &context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
-			message := fmt.Sprintf("Failed to write output GeoJSON: %v\n%#v", err.Error(), fc)
-			util.LogAlert(&context, message)
-			http.Error(writer, message, http.StatusInternalServerError)
+			err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", fc), err)
+			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
@@ -143,7 +141,7 @@ func AssetHandler(writer http.ResponseWriter, request *http.Request) {
 		options.activate = true
 	}
 
-	if result, err = GetAsset(options, context); err == nil {
+	if result, err = GetAsset(options, &context); err == nil {
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(result)
 	} else {
@@ -190,7 +188,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 
 	options.ItemType = vars["itemType"]
 
-	if feature, err = GetMetadata(options, context); err == nil {
+	if feature, err = GetMetadata(options, &context); err == nil {
 		if bytes, err = geojson.Write(feature); err != nil {
 			////
 			http.Error(writer, err.Error(), http.StatusInternalServerError)

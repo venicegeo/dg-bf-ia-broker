@@ -22,7 +22,6 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
-	"time"
 )
 
 var httpClient *http.Client
@@ -128,13 +127,13 @@ func SubmitMultipart(bodyStr, address, filename, authKey string, fileData []byte
 
 	resp, err := client.Do(fileReq)
 	if err != nil {
-		return nil, &Error{LogMsg: "Error on POST multipart: " + err.Error(), url: address, request: bodyStr, SimpleMsg: "HTTP error on file upload.  See logs."}
+		return nil, &Error{LogMsg: "Error on POST multipart: " + err.Error(), URL: address, Request: bodyStr, SimpleMsg: "HTTP error on file upload.  See logs."}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
 		errByt, _ := ioutil.ReadAll(resp.Body)
 		outMsg := "Received " + http.StatusText(resp.StatusCode) + " on multipart POST call to " + address + ".  Further details logged."
-		return resp, &Error{LogMsg: "Failed multipart HTTP request", url: address, request: bodyStr, response: string(errByt), httpStatus: resp.StatusCode, SimpleMsg: outMsg}
+		return resp, &Error{LogMsg: "Failed multipart HTTP request", URL: address, Request: bodyStr, Response: string(errByt), HTTPStatus: resp.StatusCode, SimpleMsg: outMsg}
 	}
 	return resp, nil
 }
@@ -170,70 +169,17 @@ func SubmitSinglePart(method, bodyStr, url, authKey string) (*http.Response, err
 
 	resp, err := client.Do(fileReq)
 	if err != nil {
-		return nil, &Error{LogMsg: err.Error(), request: bodyStr}
+		return nil, &Error{LogMsg: err.Error(), Request: bodyStr}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		defer resp.Body.Close()
 		errByt, _ := ioutil.ReadAll(resp.Body)
 
 		outMsg := "Received " + http.StatusText(resp.StatusCode) + " on call to " + url + ".  Further details logged."
-		return resp, &Error{LogMsg: "Failed HTTP request", request: bodyStr, response: string(errByt), url: url, httpStatus: resp.StatusCode, SimpleMsg: outMsg}
+		return resp, &Error{LogMsg: "Failed HTTP request", Request: bodyStr, Response: string(errByt), URL: url, HTTPStatus: resp.StatusCode, SimpleMsg: outMsg}
 	}
 
 	return resp, nil
-}
-
-// GetJobResponse will repeatedly poll the job status on the given job Id
-// until job completion, then acquires and returns the DataResult.
-func GetJobResponse(jobID, pzAddr, authKey string) (*DataResult, error) {
-
-	if jobID == "" {
-		return nil, &Error{LogMsg: `JobID not provided.  Cannot get Job Response.`}
-	}
-
-	for i := 0; i < 300; i++ { // will wait up to 5 minutes
-
-		var outpObj struct {
-			Data JobStatusResp `json:"data,omitempty"`
-		}
-		respBuf, err := RequestKnownJSON("GET", "", pzAddr+"/job/"+jobID, authKey, &outpObj)
-		if err != nil {
-			return nil, err
-		}
-
-		respObj := &outpObj.Data
-		if respObj.Status == "Submitted" ||
-			respObj.Status == "Running" ||
-			respObj.Status == "Pending" ||
-			(respObj.Status == "Success" && respObj.Result == nil) ||
-			(respObj.Status == "Error" && respObj.Result.Message == "Job Not Found.") {
-			time.Sleep(time.Second)
-		} else {
-			if respObj.Status == "Success" {
-				return respObj.Result, nil
-			}
-			if respObj.Status == "Fail" {
-				return nil, &Error{LogMsg: "Piazza failure when acquiring DataId.  Response json: " + string(respBuf)}
-			}
-			if respObj.Status == "Error" {
-				return nil, &Error{LogMsg: "Piazza error when acquiring DataId.  Response json: " + string(respBuf)}
-			}
-			return nil, &Error{LogMsg: `Unknown status "` + respObj.Status + `" when acquiring DataId.  Response json: ` + string(respBuf)}
-		}
-	}
-
-	return nil, &Error{LogMsg: "Job never completed.  JobId: " + jobID}
-}
-
-// GetJobID is a simple function to extract the job ID from
-// the standard response to job-creating Pz calls
-func GetJobID(resp *http.Response) (string, error) {
-	var respObj JobInitResp
-	byts, err := ReadBodyJSON(&respObj, resp.Body)
-	if respObj.Data.JobID == "" && err == nil {
-		return "", &Error{LogMsg: "Response did not contain Job ID.  initial response: " + string(byts)}
-	}
-	return respObj.Data.JobID, err
 }
 
 // ReadBodyJSON takes the body of either a request object or a response

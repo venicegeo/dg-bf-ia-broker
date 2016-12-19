@@ -103,48 +103,6 @@ type rangeConfig struct {
 	LT  float64 `json:"lt,omitempty"`
 }
 
-type doRequestInput struct {
-	method      string
-	inputURL    string // URL may be relative or absolute based on baseURLString
-	body        []byte
-	contentType string
-}
-
-// doRequest performs the request
-func doRequest(input doRequestInput, context Context) (*http.Response, error) {
-	var (
-		request   *http.Request
-		parsedURL *url.URL
-		inputURL  string
-		err       error
-	)
-	inputURL = input.inputURL
-	if !strings.Contains(inputURL, baseURLString) {
-		baseURL, _ := url.Parse(baseURLString)
-		parsedRelativeURL, _ := url.Parse(input.inputURL)
-		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
-
-		if parsedURL, err = url.Parse(resolvedURL.String()); err != nil {
-			err = fmt.Errorf("Failed to parse %v into a URL: %v", resolvedURL.String(), err.Error())
-			util.LogAlert(&context, err.Error())
-			return nil, err
-		}
-		inputURL = parsedURL.String()
-	}
-	util.LogInfo(&context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
-	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
-		err = fmt.Errorf("Failed to make a new HTTP request for %v: %v", inputURL, err.Error())
-		util.LogAlert(&context, err.Error())
-		return nil, err
-	}
-	if input.contentType != "" {
-		request.Header.Set("Content-Type", input.contentType)
-	}
-
-	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
-	return util.HTTPClient().Do(request)
-}
-
 // Assets represents the assets available for a scene
 type Assets struct {
 	Analytic    Asset `json:"analytic"`
@@ -171,8 +129,48 @@ type Links struct {
 	Type     string `json:"type"`
 }
 
+type doRequestInput struct {
+	method      string
+	inputURL    string // URL may be relative or absolute based on baseURLString
+	body        []byte
+	contentType string
+}
+
+// doRequest performs the request
+func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
+	var (
+		request   *http.Request
+		parsedURL *url.URL
+		inputURL  string
+		err       error
+	)
+	inputURL = input.inputURL
+	if !strings.Contains(inputURL, baseURLString) {
+		baseURL, _ := url.Parse(baseURLString)
+		parsedRelativeURL, _ := url.Parse(input.inputURL)
+		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
+
+		if parsedURL, err = url.Parse(resolvedURL.String()); err != nil {
+			err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse %v into a URL.", resolvedURL.String()), err)
+			return nil, err
+		}
+		inputURL = parsedURL.String()
+	}
+	util.LogInfo(context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
+	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
+		return nil, err
+	}
+	if input.contentType != "" {
+		request.Header.Set("Content-Type", input.contentType)
+	}
+
+	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
+	return util.HTTPClient().Do(request)
+}
+
 // GetScenes returns a FeatureCollection containing the scenes requested
-func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollection, error) {
+func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollection, error) {
 	var (
 		err      error
 		response *http.Response
@@ -196,8 +194,7 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
 	if body, err = json.Marshal(req); err != nil {
-		err = fmt.Errorf("Failed to marshal request object %#v: %v", req, err.Error())
-		util.LogAlert(&context, err.Error())
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to marshal request object %#v.", req), err)
 		return nil, err
 	}
 	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
@@ -210,7 +207,7 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 	}
 	if options.Tides {
 		var context tides.Context
-		if fc, err = tides.GetTides(fc, context); err != nil {
+		if fc, err = tides.GetTides(fc, &context); err != nil {
 			return nil, err
 		}
 	}
@@ -218,7 +215,7 @@ func GetScenes(options SearchOptions, context Context) (*geojson.FeatureCollecti
 }
 
 // Transforms search results into a FeatureCollection for later use
-func transformSRBody(body []byte, context Context) (*geojson.FeatureCollection, error) {
+func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection, error) {
 	var (
 		result *geojson.FeatureCollection
 		fc     *geojson.FeatureCollection
@@ -227,15 +224,13 @@ func transformSRBody(body []byte, context Context) (*geojson.FeatureCollection, 
 		ok     bool
 	)
 	if fci, err = geojson.Parse(body); err != nil {
-		err = fmt.Errorf("Failed to parse GeoJSON: %v" + err.Error())
-		util.LogAlert(&context, err.Error())
-		util.LogInfo(&context, string(body))
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse GeoJSON.\n%v", string(body)), err)
 		return nil, err
 	}
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
-		err = fmt.Errorf("Expected a FeatureCollection and got %T", fci)
-		util.LogAlert(&context, err.Error())
-		util.LogInfo(&context, string(body))
+		err = fmt.Errorf("Expected a FeatureCollection and got %T\n%v", fci, string(body))
+		////
+		util.LogAlert(context, err.Error())
 		return nil, err
 	}
 	features := make([]*geojson.Feature, len(fc.Features))
@@ -269,24 +264,28 @@ type AssetOptions struct {
 
 // GetAsset returns the status of the analytic asset and
 // attempts to activate it if needed
-func GetAsset(options AssetOptions, context Context) ([]byte, error) {
+func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
 	var (
 		response *http.Response
 		err      error
 		body     []byte
 		assets   Assets
 	)
-	if response, err = doRequest(doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"}, context); err != nil {
-		err = fmt.Errorf("Failed to get asset metadata for %v: %v", options.ID, err.Error())
-		util.LogAlert(&context, err.Error())
+	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
+	util.LogInfo(context, "Calling Planet Labs "+inputURL)
+	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to get asset metadata for %v.", options.ID), err)
 		return nil, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &assets); err != nil {
-		err = fmt.Errorf("Failed to Unmarshal response: %v", err.Error())
-		util.LogAlert(&context, err.Error())
-		util.LogInfo(&context, string(body))
+		plErr := util.Error{LogMsg: "Failed to Unmarshal response from Planet Labs data request: " + err.Error(),
+			SimpleMsg:  "Planet Labs returned an unexpected response for this request. See log for further details.",
+			Response:   string(body),
+			URL:        inputURL,
+			HTTPStatus: response.StatusCode}
+		err = plErr.Log(context, "")
 		return nil, err
 	}
 	if options.activate && (assets.Analytic.Status == "inactive") {
@@ -296,26 +295,29 @@ func GetAsset(options AssetOptions, context Context) ([]byte, error) {
 }
 
 // GetMetadata returns the Beachfront metadata for a single scene
-func GetMetadata(options AssetOptions, context Context) (*geojson.Feature, error) {
+func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, error) {
 	var (
 		response *http.Response
 		err      error
 		body     []byte
 		feature  geojson.Feature
 	)
-	util.LogInfo(&context, "Calling Planet Labs to get metadata for scene "+options.ID)
-	input := doRequestInput{method: "GET", inputURL: "data/v1/item-types/" + options.ItemType + "/items/" + options.ID}
+	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID
+	util.LogInfo(context, "Calling Planet Labs "+inputURL)
+	input := doRequestInput{method: "GET", inputURL: inputURL}
 	if response, err = doRequest(input, context); err != nil {
-		err = fmt.Errorf("Failed to get metadata for %v: %v", options.ID, err.Error())
-		util.LogAlert(&context, err.Error())
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to get metadata for %v.", options.ID), err)
 		return nil, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	if err = json.Unmarshal(body, &feature); err != nil {
-		err = fmt.Errorf("Failed to Unmarshal response: %v", err.Error())
-		util.LogAlert(&context, err.Error())
-		util.LogInfo(&context, string(body))
+		plErr := util.Error{LogMsg: "Failed to Unmarshal response from Planet Labs data request: " + err.Error(),
+			SimpleMsg:  "Planet Labs returned an unexpected response for this request. See log for further details.",
+			Response:   string(body),
+			URL:        inputURL,
+			HTTPStatus: response.StatusCode}
+		err = plErr.Log(context, "")
 		return nil, err
 	}
 	return transformSRFeature(&feature), nil

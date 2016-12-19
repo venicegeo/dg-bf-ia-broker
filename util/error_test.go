@@ -14,15 +14,15 @@
 
 package util
 
-import (
-	"errors"
-	"testing"
-)
+import "testing"
 
-func TestLog(t *testing.T) {
+func TestError(t *testing.T) {
 	context := &BasicLogContext{}
-
-	LogAlert(context, "Here is an alert.")
-	LogSimpleErr(context, "Here is an error.", errors.New("Error happened."))
-	LogInfo(context, "Here is an info.")
+	err := Error{SimpleMsg: "Here is an error.",
+		URL:        "foo.bar/bas",
+		HTTPStatus: 500,
+		Request:    "[Here is the request.]",
+		Response:   "[Here is the response.]"}
+	err.Log(context, "Here is some supplemental text.")
+	err.Log(context, "Trying to log again.")
 }

@@ -66,8 +66,18 @@ func LogInfo(lc LogContext, message string) {
 // may be attempting to breach the security of the program, or point to the
 // possibility of a significant security vulnerability.  The point of this
 // function is mostly to maintain uniformity of appearance and behavior.
-func LogAlert(s LogContext, message string) {
-	logMessage(s, "ALERT", message)
+func LogAlert(lc LogContext, message string) {
+	logMessage(lc, "ALERT", message)
+}
+
+// LogSimpleErr posts a logMessage call for simple error messages, and produces a pzsvc.Error
+// from the result.  The point is mostly to maintain uniformity of appearance and behavior.
+func LogSimpleErr(lc LogContext, message string, err error) LoggedError {
+	if err != nil {
+		message += err.Error()
+	}
+	logMessage(lc, "ERROR", message)
+	return fmt.Errorf(message)
 }
 
 // LoggedError is a duplicate of the "error" interface.  Its real point is to
