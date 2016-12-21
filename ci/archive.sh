@@ -18,7 +18,7 @@ go version
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install
 
-go get -v github.com/venicegeo/bf-ia-broker/...
+go get -v github.com/venicegeo/bf-ia-broker
 
 cd $GOPATH/src/github.com/venicegeo/bf-ia-broker
 
