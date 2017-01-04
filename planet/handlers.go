@@ -26,6 +26,7 @@ import (
 
 const noPlanetKey = "This operation requires a Planet Labs API key."
 const noPlanetImageID = "This operation requires a Planet Labs image ID."
+const invalidCloudCover = "Cloud Cover value of %v is invalid."
 
 // DiscoverHandler is a handler for /planet/discover
 // @Title planetDiscoverHandler
@@ -42,12 +43,14 @@ const noPlanetImageID = "This operation requires a Planet Labs image ID."
 // @Router /planet/discover/{itemType} [get]
 func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
-		fc       *geojson.FeatureCollection
-		err      error
-		itemType string
-		bytes    []byte
-		bbox     geojson.BoundingBox
-		context  Context
+		fc         *geojson.FeatureCollection
+		err        error
+		itemType   string
+		bytes      []byte
+		bbox       geojson.BoundingBox
+		ccStr      string
+		cloudCover float64
+		context    Context
 	)
 
 	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
@@ -64,6 +67,15 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	tides, _ := strconv.ParseBool(request.FormValue("tides"))
+
+	ccStr = request.FormValue("cloudCover")
+	if ccStr != "" {
+		if cloudCover, err = strconv.ParseFloat(ccStr, 64); err != nil {
+			message := fmt.Sprintf(invalidCloudCover, ccStr)
+			util.LogInfo(&context, message)
+			http.Error(writer, message, http.StatusBadRequest)
+		}
+	}
 
 	itemType = mux.Vars(request)["itemType"]
 	switch itemType {
@@ -87,9 +99,12 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	}
 
 	options := SearchOptions{
-		ItemType: itemType,
-		Tides:    tides,
-		Bbox:     bbox}
+		ItemType:        itemType,
+		CloudCover:      cloudCover,
+		AcquiredDate:    request.FormValue("acquiredDate"),
+		MaxAcquiredDate: request.FormValue("maxAcquiredDate"),
+		Tides:           tides,
+		Bbox:            bbox}
 
 	if fc, err = GetScenes(options, &context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
