@@ -25,9 +25,9 @@ import (
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-const fakeDiscoverURL = "foo://bar/planet/discover/REOrthoTile?PL_API_KEY=%v"
-const fakeMetadataURL = "foo://bar/planet/REOrthoTile/%v?PL_API_KEY=%v"
-const fakeAssetURL = "foo://bar/planet/asset/REOrthoTile/%v?PL_API_KEY=%v"
+const fakeDiscoverURL = "foo://bar/planet/discover/rapideye?PL_API_KEY=%v"
+const fakeMetadataURL = "foo://bar/planet/rapideye/%v?PL_API_KEY=%v"
+const fakeAssetURL = "foo://bar/planet/asset/rapideye/%v?PL_API_KEY=%v"
 
 func TestHandlers(t *testing.T) {
 	var (

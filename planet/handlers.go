@@ -32,7 +32,7 @@ const noPlanetImageID = "This operation requires a Planet Labs image ID."
 // @Description discovers scenes from Planet Labs
 // @Accept  plain
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
-// @Param   itemType        path    string  true        "Planet Labs Item Type, e.g., REOrthoTile"
+// @Param   itemType        path    string  true         "Planet Labs Item Type, e.g., rapideye or planetscope"
 // @Param   bbox            query   string  false        "The bounding box, as a GeoJSON Bounding box (x1,y1,x2,y2)"
 // @Param   acquiredDate    query   string  false        "The minimum (earliest) acquired date, as RFC 3339"
 // @Param   maxAcquiredDate query   string  false        "The maximum acquired date, as RFC 3339"
@@ -66,6 +66,16 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	tides, _ := strconv.ParseBool(request.FormValue("tides"))
 
 	itemType = mux.Vars(request)["itemType"]
+	switch itemType {
+	case "rapideye":
+		itemType = "REOrthoTile"
+	case "planetscope":
+		itemType = "PSOrthoTile"
+	default:
+		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	bboxString := request.FormValue("bbox")
 	if bboxString != "" {
@@ -135,7 +145,17 @@ func AssetHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	options.ItemType = vars["itemType"]
+	itemType := vars["itemType"]
+	switch itemType {
+	case "rapideye":
+		options.ItemType = "REOrthoTile"
+	case "planetscope":
+		options.ItemType = "PSOrthoTile"
+	default:
+		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if request.Method == "POST" {
 		options.activate = true
@@ -154,7 +174,7 @@ func AssetHandler(writer http.ResponseWriter, request *http.Request) {
 // @Description Gets image metadata from Planet Labs
 // @Accept  plain
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
-// @Param   itemType        path    string  true        "Planet Labs Item Type, e.g., REOrthoTile"
+// @Param   itemType        path    string  true         "Planet Labs Item Type, e.g., rapideye or planetscope"
 // @Param   id              path    string  true         "Planet Labs image ID"
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
@@ -186,17 +206,27 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
-	options.ItemType = vars["itemType"]
+	itemType := vars["itemType"]
+	switch itemType {
+	case "rapideye":
+		options.ItemType = "REOrthoTile"
+	case "planetscope":
+		options.ItemType = "PSOrthoTile"
+	default:
+		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	if feature, err = GetMetadata(options, &context); err == nil {
 		if bytes, err = geojson.Write(feature); err != nil {
-			////
+			err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", feature), err)
 			http.Error(writer, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
 	} else {
-		http.Error(writer, "Failed to acquire activation information for "+options.ID+": "+err.Error(), http.StatusInternalServerError)
+		http.Error(writer, "Failed to acquire metadata information for "+options.ID+": "+err.Error(), http.StatusInternalServerError)
 	}
 }
