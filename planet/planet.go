@@ -311,7 +311,7 @@ func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection,
 
 func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties := make(map[string]interface{})
-	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64)
+	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64) * 100.0
 	id := feature.IDStr()
 	properties["resolution"] = feature.Properties["gsd"].(float64)
 	adString := feature.Properties["acquired"].(string)
