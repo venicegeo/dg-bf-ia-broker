@@ -35,6 +35,7 @@ const invalidCloudCover = "Cloud Cover value of %v is invalid."
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
 // @Param   itemType        path    string  true         "Planet Labs Item Type, e.g., rapideye or planetscope"
 // @Param   bbox            query   string  false        "The bounding box, as a GeoJSON Bounding box (x1,y1,x2,y2)"
+// @Param   cloudCover      query   string  false        "The maximum cloud cover, as a percentage (0-100)"
 // @Param   acquiredDate    query   string  false        "The minimum (earliest) acquired date, as RFC 3339"
 // @Param   maxAcquiredDate query   string  false        "The maximum acquired date, as RFC 3339"
 // @Param   tides           query   bool    false        "True: incorporate tide prediction in the output"
@@ -74,7 +75,9 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 			message := fmt.Sprintf(invalidCloudCover, ccStr)
 			util.LogInfo(&context, message)
 			http.Error(writer, message, http.StatusBadRequest)
+			return
 		}
+		cloudCover = cloudCover / 100.0
 	}
 
 	itemType = mux.Vars(request)["itemType"]
