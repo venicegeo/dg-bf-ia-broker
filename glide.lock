@@ -1,5 +1,5 @@
 hash: b57054d4815233c53ea305d7d2af23924ad2ae3edd9f29263c9fde4f24f16394
-updated: 2016-12-21T12:01:30.708517694-05:00
+updated: 2017-01-09T11:34:09.123794464-05:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
@@ -8,11 +8,11 @@ imports:
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/spf13/cobra
-  version: b62566898a99f2db9c68ed0026aa0a052e59678d
+  version: 1dd5ff2e11b6dca62fdcb275eb804b94607d8b06
 - name: github.com/spf13/pflag
   version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
 - name: github.com/venicegeo/geojson-go
-  version: ab7eb0e00662539522f8c72b7f878d7979412ded
+  version: 083835cefebc350ba4cce15064e87e8d327e9e75
   subpackages:
   - geojson
 - name: github.com/venicegeo/pzsvc-lib

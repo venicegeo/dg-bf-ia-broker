@@ -147,11 +147,12 @@ type AssetOptions struct {
 // GetScenes returns a FeatureCollection containing the scenes requested
 func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollection, error) {
 	var (
-		err      error
-		response *http.Response
-		body     []byte
-		req      request
-		fc       *geojson.FeatureCollection
+		err          error
+		response     *http.Response
+		requestBody  []byte
+		responseBody []byte
+		req          request
+		fc           *geojson.FeatureCollection
 	)
 
 	req.ItemTypes = append(req.ItemTypes, options.ItemType)
@@ -168,16 +169,26 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 		cc := rangeConfig{LTE: options.CloudCover}
 		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "RangeFilter", FieldName: "cloud_cover", Config: cc})
 	}
-	if body, err = json.Marshal(req); err != nil {
+	if requestBody, err = json.Marshal(req); err != nil {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to marshal request object %#v.", req), err)
 		return nil, err
 	}
-	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: body, contentType: "application/json"}, context); err != nil {
+	if response, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: requestBody, contentType: "application/json"}, context); err != nil {
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to complete Planet Labs request %#v.", req), err)
 		return nil, err
 	}
 	defer response.Body.Close()
-	body, _ = ioutil.ReadAll(response.Body)
-	if fc, err = transformSRBody(body, context); err != nil {
+	responseBody, _ = ioutil.ReadAll(response.Body)
+
+	if (response.StatusCode < http.StatusOK) || (response.StatusCode >= http.StatusMultipleChoices) {
+		plErr := util.Error{SimpleMsg: fmt.Sprintf("Received \"%v\" from Planet Labs", response.Status),
+			Response: string(responseBody),
+			Request:  string(requestBody)}
+		err = plErr.Log(context, "")
+		return nil, err
+	}
+
+	if fc, err = transformSRBody(responseBody, context); err != nil {
 		return nil, err
 	}
 	if options.Tides {
@@ -256,7 +267,6 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		inputURL  string
 		err       error
 	)
-	////
 	inputURL = input.inputURL
 	if !strings.Contains(inputURL, baseURLString) {
 		baseURL, _ := url.Parse(baseURLString)
@@ -297,7 +307,7 @@ func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection,
 	}
 	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
 		plErr := util.Error{SimpleMsg: fmt.Sprintf("Expected a FeatureCollection and got %T", fci),
-			Request: string(body)}
+			Response: string(body)}
 		err = plErr.Log(context, "")
 		return nil, err
 	}
