@@ -159,7 +159,7 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 	req.Filter.Type = "AndFilter"
 	req.Filter.Config = make([]interface{}, 0)
 	if options.Bbox != nil {
-		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "GeometryFilter", FieldName: "geometry", Config: options.Bbox.Polygon()})
+		req.Filter.Config = append(req.Filter.Config, objectFilter{Type: "GeometryFilter", FieldName: "geometry", Config: options.Bbox.Geometry()})
 	}
 	if options.AcquiredDate != "" || options.MaxAcquiredDate != "" {
 		dc := dateConfig{GTE: options.AcquiredDate, LTE: options.MaxAcquiredDate}

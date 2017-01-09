@@ -32,10 +32,9 @@ func TestBatch(t *testing.T) {
 	context.PlanetKey = os.Getenv("PL_API_KEY")
 	options.ItemType = "REOrthoTile"
 
-	coordinates := []float64{8.5, 105.0}
+	coordinates := []float64{105.0, 8.5}
 	point := geojson.NewPoint(coordinates)
 	options.Bbox = point.ForceBbox()
-	// util.LogInfo(&context, fmt.Sprintf("%#v", options))
 
 	if best, err := BestScene(options, &context); err == nil {
 		util.LogInfo(&context, fmt.Sprintf("Found best scene: %v", best))
