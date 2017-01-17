@@ -293,7 +293,7 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 }
 
 // Transforms search results into a FeatureCollection for later use
-func transformSRBody(body []byte, context *Context) (*geojson.FeatureCollection, error) {
+func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureCollection, error) {
 	var (
 		result *geojson.FeatureCollection
 		fc     *geojson.FeatureCollection

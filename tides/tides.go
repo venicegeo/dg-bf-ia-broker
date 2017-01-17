@@ -99,7 +99,7 @@ func toTideIn(bbox geojson.BoundingBox, timeStr string) *tideIn {
 	return &tideIn{Lat: center.Coordinates[1], Lon: center.Coordinates[0], Dtg: dtgTime.Format("2006-01-02-15-04")}
 }
 
-func toTidesIn(features []*geojson.Feature, context *Context) *tidesIn {
+func toTidesIn(features []*geojson.Feature, context util.LogContext) *tidesIn {
 	var (
 		result     tidesIn
 		currTideIn *tideIn

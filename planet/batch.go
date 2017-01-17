@@ -59,7 +59,7 @@ func BestScene(options SearchOptions, context *Context) (string, error) {
 
 var date2015 = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC).Unix()
 
-func scoreScene(scene *geojson.Feature, context *Context) float64 {
+func scoreScene(scene *geojson.Feature, context util.LogContext) float64 {
 	var (
 		result       = 1.0
 		acquiredDate time.Time
