@@ -104,5 +104,5 @@ tar cvzf $APP.$EXT \
     tides.cov \
     tides-lint.txt \
     util.cov \
-    util-lint.txt \
+    util-lint.txt
 tar tzf $APP.$EXT
