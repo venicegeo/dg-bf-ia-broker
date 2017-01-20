@@ -61,7 +61,7 @@ func (feature *Feature) ForceBbox() BoundingBox {
 		return bboxIfc.ForceBbox()
 	}
 
-	log.Printf("Feature %v does not have a Geometry that can be made into a Bounding Box: %t", feature.IDStr(), feature.Geometry)
+	log.Printf("Feature %v does not have a Geometry that can be made into a Bounding Box: %#v", feature.IDStr(), feature.Geometry)
 	return BoundingBox{}
 }
 
@@ -250,7 +250,7 @@ func FeatureFromMap(input map[string]interface{}) *Feature {
 			case string:
 				result.ID = idtype
 			case int:
-				result.ID = strconv.FormatInt(int64(idtype), 10)
+				result.ID = strconv.Itoa(idtype)
 			}
 		}
 		return &result

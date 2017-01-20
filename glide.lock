@@ -1,18 +1,18 @@
 hash: b57054d4815233c53ea305d7d2af23924ad2ae3edd9f29263c9fde4f24f16394
-updated: 2017-01-09T11:51:28.41688351-05:00
+updated: 2017-01-20T14:28:18.646915674-05:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/gorilla/mux
-  version: 757bef944d0f21880861c2dd9c871ca543023cba
+  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - name: github.com/inconshreveable/mousetrap
   version: 76626ae9c91c4f2a10f34cad8ce83ea42c93bb75
 - name: github.com/spf13/cobra
-  version: 1dd5ff2e11b6dca62fdcb275eb804b94607d8b06
+  version: dc208f4211e7f6df7ec8cb62640f57d3e154910d
 - name: github.com/spf13/pflag
-  version: 25f8b5b07aece3207895bf19f7ab517eb3b22a40
+  version: a232f6d9f87afaaa08bafaff5da685f974b83313
 - name: github.com/venicegeo/geojson-go
-  version: 7c5daff97e82ff3df646ce9c5778c2f81d20463c
+  version: 6cfe47f5349a69ae342a870157ba64cb81b6a4b9
   subpackages:
   - geojson
 testImports: []
