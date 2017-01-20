@@ -137,10 +137,10 @@ type doRequestInput struct {
 	contentType string
 }
 
-// AssetOptions are the options for the Asset func
-type AssetOptions struct {
+// MetadataOptions are the options for the Asset func
+type MetadataOptions struct {
 	ID       string
-	activate bool
+	Tides    bool
 	ItemType string
 }
 
@@ -202,7 +202,7 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 
 // GetAsset returns the status of the analytic asset and
 // attempts to activate it if needed
-func GetAsset(options AssetOptions, context *Context) (Asset, error) {
+func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 	var (
 		result   Asset
 		response *http.Response
@@ -230,7 +230,7 @@ func GetAsset(options AssetOptions, context *Context) (Asset, error) {
 }
 
 // GetMetadata returns the Beachfront metadata for a single scene
-func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, error) {
+func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, error) {
 	var (
 		response *http.Response
 		err      error
@@ -254,11 +254,23 @@ func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, erro
 		err = plErr.Log(context, "")
 		return nil, err
 	}
-	return transformSRFeature(&feature), nil
+	feature = *transformSRFeature(&feature)
+	if options.Tides {
+		var (
+			tc tides.Context
+		)
+		fc := geojson.NewFeatureCollection([]*geojson.Feature{&feature})
+		if fc, err = tides.GetTides(fc, &tc); err != nil {
+			return nil, err
+		}
+		feature = *fc.Features[0]
+	}
+
+	return &feature, nil
 }
 
 // Activate retrieves and activates the analytic asset.
-func Activate(options AssetOptions, context *Context) (*http.Response, error) {
+func Activate(options MetadataOptions, context *Context) (*http.Response, error) {
 	var (
 		asset Asset
 		err   error

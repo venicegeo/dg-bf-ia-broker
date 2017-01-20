@@ -130,6 +130,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 // @Param   PL_API_KEY      query   string  true         "Planet Labs API Key"
 // @Param   itemType        path    string  true         "Planet Labs Item Type, e.g., rapideye or planetscope"
 // @Param   id              path    string  true         "Planet Labs image ID"
+// @Param   tides           query   bool    false        "True: incorporate tide prediction in the output"
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
 // @Router /planet/{itemType}/{id} [get]
@@ -139,7 +140,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		context Context
 		feature *geojson.Feature
 		bytes   []byte
-		options AssetOptions
+		options MetadataOptions
 		asset   Asset
 	)
 
@@ -160,6 +161,8 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		http.Error(writer, "This operation requires a Planet Labs API key.", http.StatusBadRequest)
 		return
 	}
+
+	options.Tides, _ = strconv.ParseBool(request.FormValue("tides"))
 
 	itemType := vars["itemType"]
 	switch itemType {
@@ -204,7 +207,7 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err      error
 		context  Context
-		options  AssetOptions
+		options  MetadataOptions
 		response *http.Response
 	)
 

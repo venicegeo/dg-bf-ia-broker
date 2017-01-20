@@ -1,5 +1,5 @@
 hash: b57054d4815233c53ea305d7d2af23924ad2ae3edd9f29263c9fde4f24f16394
-updated: 2017-01-20T14:28:18.646915674-05:00
+updated: 2017-01-20T16:07:08.798963921-05:00
 imports:
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
@@ -12,7 +12,7 @@ imports:
 - name: github.com/spf13/pflag
   version: a232f6d9f87afaaa08bafaff5da685f974b83313
 - name: github.com/venicegeo/geojson-go
-  version: 6cfe47f5349a69ae342a870157ba64cb81b6a4b9
+  version: 129158cb20242d601d249766e6b81144ca957344
   subpackages:
   - geojson
 testImports: []

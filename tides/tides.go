@@ -15,6 +15,7 @@
 package tides
 
 import (
+	"fmt"
 	"math"
 	"os"
 	"time"
@@ -108,7 +109,10 @@ func toTidesIn(features []*geojson.Feature, context util.LogContext) *tidesIn {
 	for _, feature := range features {
 		if feature.PropertyFloat("CurrentTide") != math.NaN() {
 			if currTideIn = toTideIn(feature.ForceBbox(), feature.PropertyString("acquiredDate")); currTideIn == nil {
-				util.LogInfo(context, `Could not get tide information from feature `+feature.IDStr()+` because required elements did not exist.`)
+				util.LogInfo(context, fmt.Sprintf("Could not get tide information from feature %v because required elements did not exist. BBOX: %#v, Date: %v",
+					feature.IDStr(),
+					feature.ForceBbox(),
+					feature.PropertyString("acquiredDate")))
 				continue
 			}
 			result.Locations = append(result.Locations, *currTideIn)
