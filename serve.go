@@ -34,7 +34,7 @@ func serve() {
 	})
 	router.HandleFunc("/planet/discover/{itemType}", planet.DiscoverHandler)
 	router.HandleFunc("/planet/{itemType}/{id}", planet.MetadataHandler)
-	router.HandleFunc("/planet/asset/{itemType}/{id}", planet.AssetHandler)
+	router.HandleFunc("/planet/activate/{itemType}/{id}", planet.ActivateHandler)
 	// 	case "/help":
 	// 		fmt.Fprintf(writer, "We're sorry, help is not yet implemented.\n")
 	// 	default:

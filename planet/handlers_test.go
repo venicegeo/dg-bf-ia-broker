@@ -27,8 +27,7 @@ import (
 
 const fakeDiscoverURL = "foo://bar/planet/discover/rapideye?PL_API_KEY=%v"
 const fakeMetadataURL = "foo://bar/planet/rapideye/%v?PL_API_KEY=%v"
-
-// const fakeAssetURL = "foo://bar/planet/asset/rapideye/%v?PL_API_KEY=%v"
+const fakeActivateURL = "foo://bar/planet/activate/rapideye/%v?PL_API_KEY=%v"
 
 func TestHandlers(t *testing.T) {
 	var (
@@ -53,7 +52,9 @@ func TestHandlers(t *testing.T) {
 	writer, _, _ = util.GetMockResponseWriter()
 	router := mux.NewRouter()
 	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
+	router.HandleFunc("/planet/activate/{itemType}/{id}", ActivateHandler)
 	router.ServeHTTP(writer, request)
+
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
@@ -69,12 +70,6 @@ func TestHandlers(t *testing.T) {
 	// }
 	// writer, _, _ = util.GetMockResponseWriter()
 
-	// router.HandleFunc("/planet/asset/{itemType}/{id}", AssetHandler)
-	// router.ServeHTTP(writer, request)
-	// if writer.StatusCode == http.StatusOK {
-	// 	t.Errorf("Expected request to fail due to lack of Image ID but received: %v, %v", writer.StatusCode, writer.OutputString)
-	// }
-	//
 	// // Test: Activate, no API Key
 	// if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
 	// 	t.Error(err.Error())
@@ -111,13 +106,13 @@ func TestHandlers(t *testing.T) {
 	}
 
 	// Test: Activate (happy)
-	// assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
-	// if request, err = http.NewRequest("POST", assetURL, nil); err != nil {
-	// 	t.Error(err.Error())
-	// }
-	// writer, _, _ = util.GetMockResponseWriter()
-	// router.ServeHTTP(writer, request)
-	// if writer.StatusCode != http.StatusOK {
-	// 	t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
-	// }
+	activateURL := fmt.Sprintf(fakeActivateURL, id, os.Getenv("PL_API_KEY"))
+	if request, err = http.NewRequest("POST", activateURL, nil); err != nil {
+		t.Error(err.Error())
+	}
+	writer, _, _ = util.GetMockResponseWriter()
+	router.ServeHTTP(writer, request)
+	if writer.StatusCode != http.StatusOK {
+		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
+	}
 }
