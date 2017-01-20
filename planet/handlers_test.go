@@ -27,7 +27,8 @@ import (
 
 const fakeDiscoverURL = "foo://bar/planet/discover/rapideye?PL_API_KEY=%v"
 const fakeMetadataURL = "foo://bar/planet/rapideye/%v?PL_API_KEY=%v"
-const fakeAssetURL = "foo://bar/planet/asset/rapideye/%v?PL_API_KEY=%v"
+
+// const fakeAssetURL = "foo://bar/planet/asset/rapideye/%v?PL_API_KEY=%v"
 
 func TestHandlers(t *testing.T) {
 	var (
@@ -63,27 +64,27 @@ func TestHandlers(t *testing.T) {
 	id := fci.(*geojson.FeatureCollection).Features[0].IDStr()
 
 	// Test: Activate, no Image ID
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
+	// if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
+	// 	t.Error(err.Error())
+	// }
+	// writer, _, _ = util.GetMockResponseWriter()
 
-	router.HandleFunc("/planet/asset/{itemType}/{id}", AssetHandler)
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode == http.StatusOK {
-		t.Errorf("Expected request to fail due to lack of Image ID but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
-
-	// Test: Activate, no API Key
-	if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode == http.StatusOK {
-		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
-
+	// router.HandleFunc("/planet/asset/{itemType}/{id}", AssetHandler)
+	// router.ServeHTTP(writer, request)
+	// if writer.StatusCode == http.StatusOK {
+	// 	t.Errorf("Expected request to fail due to lack of Image ID but received: %v, %v", writer.StatusCode, writer.OutputString)
+	// }
+	//
+	// // Test: Activate, no API Key
+	// if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
+	// 	t.Error(err.Error())
+	// }
+	// writer, _, _ = util.GetMockResponseWriter()
+	// router.ServeHTTP(writer, request)
+	// if writer.StatusCode == http.StatusOK {
+	// 	t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
+	// }
+	//
 	// Test: Metadata (happy)
 	metadataURL := fmt.Sprintf(fakeMetadataURL, id, os.Getenv("PL_API_KEY"))
 
@@ -110,13 +111,13 @@ func TestHandlers(t *testing.T) {
 	}
 
 	// Test: Activate (happy)
-	assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
-	if request, err = http.NewRequest("POST", assetURL, nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode != http.StatusOK {
-		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
+	// assetURL := fmt.Sprintf(fakeAssetURL, id, os.Getenv("PL_API_KEY"))
+	// if request, err = http.NewRequest("POST", assetURL, nil); err != nil {
+	// 	t.Error(err.Error())
+	// }
+	// writer, _, _ = util.GetMockResponseWriter()
+	// router.ServeHTTP(writer, request)
+	// if writer.StatusCode != http.StatusOK {
+	// 	t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
+	// }
 }

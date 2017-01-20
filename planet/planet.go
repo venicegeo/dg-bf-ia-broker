@@ -202,8 +202,9 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 
 // GetAsset returns the status of the analytic asset and
 // attempts to activate it if needed
-func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
+func GetAsset(options AssetOptions, context *Context) (Asset, error) {
 	var (
+		result   Asset
 		response *http.Response
 		err      error
 		body     []byte
@@ -212,7 +213,7 @@ func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
 	util.LogInfo(context, "Calling Planet Labs "+inputURL)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
-		return nil, err
+		return result, err
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
@@ -223,12 +224,9 @@ func GetAsset(options AssetOptions, context *Context) ([]byte, error) {
 			URL:        inputURL,
 			HTTPStatus: response.StatusCode}
 		err = plErr.Log(context, "")
-		return nil, err
+		return result, err
 	}
-	if options.activate && (assets.Analytic.Status == "inactive") {
-		go doRequest(doRequestInput{method: "POST", inputURL: assets.Analytic.Links.Activate}, context)
-	}
-	return json.Marshal(assets.Analytic)
+	return assets.Analytic, nil
 }
 
 // GetMetadata returns the Beachfront metadata for a single scene
@@ -257,6 +255,18 @@ func GetMetadata(options AssetOptions, context *Context) (*geojson.Feature, erro
 		return nil, err
 	}
 	return transformSRFeature(&feature), nil
+}
+
+// Activate retrieves and activates the analytic asset.
+func Activate(options AssetOptions, context *Context) (*http.Response, error) {
+	var (
+		asset Asset
+		err   error
+	)
+	if asset, err = GetAsset(options, context); err != nil {
+		return nil, err
+	}
+	return doRequest(doRequestInput{method: "POST", inputURL: asset.Links.Activate}, context)
 }
 
 // doRequest performs the request
@@ -331,4 +341,22 @@ func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	result := geojson.NewFeature(feature.Geometry, id, properties)
 	result.Bbox = result.ForceBbox()
 	return result
+}
+
+func injectAssetIntoMetadata(feature *geojson.Feature, asset Asset) {
+	if asset.ExpiresAt != "" {
+		feature.Properties["expires_at"] = asset.ExpiresAt
+	}
+	if asset.Location != "" {
+		feature.Properties["location"] = asset.Location
+	}
+	if len(asset.Permissions) > 0 {
+		feature.Properties["permissions"] = asset.Permissions
+	}
+	if asset.Status != "" {
+		feature.Properties["status"] = asset.Status
+	}
+	if asset.Type != "" {
+		feature.Properties["type"] = asset.Type
+	}
 }
