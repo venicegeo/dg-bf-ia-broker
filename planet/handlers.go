@@ -244,8 +244,12 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 	if response, err = Activate(options, &context); err == nil {
 		defer response.Body.Close()
 		writer.Header().Set("Content-Type", response.Header.Get("Content-Type"))
-		bytes, _ := ioutil.ReadAll(response.Body)
-		writer.Write(bytes)
+		if (response.StatusCode >= 200) && (response.StatusCode < 300) {
+			bytes, _ := ioutil.ReadAll(response.Body)
+			writer.Write(bytes)
+		} else {
+			http.Error(writer, response.Status, response.StatusCode)
+		}
 	} else {
 		util.HTTPError(writer, &context)
 	}
