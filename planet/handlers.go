@@ -83,10 +83,12 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 
 	itemType = mux.Vars(request)["itemType"]
 	switch itemType {
-	case "rapideye":
+	case "REOrthoTile", "rapideye":
 		itemType = "REOrthoTile"
-	case "planetscope":
+	case "PSOrthoTile", "planetscope":
 		itemType = "PSOrthoTile"
+	case "PSScene4Band":
+		// No op
 	default:
 		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
 		http.Error(writer, err.Error(), http.StatusBadRequest)
