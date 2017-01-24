@@ -15,6 +15,7 @@
 package util
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"testing"
@@ -155,6 +156,14 @@ func TestHttpResponseWriter(t *testing.T) {
 			t.Log(req.Header.Get("Access-Control-Allow-Headers"))
 		}*/
 
+}
+
+func TestHTTPError(t *testing.T) {
+	writer, _, _ := GetMockResponseWriter()
+	lc := &BasicLogContext{}
+	LogSimpleErr(lc, "Test Error.", errors.New("Test Error for TestHTTPError."))
+	HTTPError(writer, lc)
+	LogInfo(lc, writer.OutputString)
 }
 
 func TestReadBodyJSON(t *testing.T) {

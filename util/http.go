@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -242,4 +243,9 @@ func PrintJSON(w http.ResponseWriter, output interface{}, httpStatus int) []byte
 		HTTPOut(w, string(outBuf), httpStatus)
 	}
 	return outBuf
+}
+
+// HTTPError provides an error message that conceals the detailed information for security reasons
+func HTTPError(w http.ResponseWriter, context LogContext) {
+	http.Error(w, fmt.Sprintf("An error occurred. Please contact your system administrator. Session ID: %v", context.SessionID()), http.StatusInternalServerError)
 }

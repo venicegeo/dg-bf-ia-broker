@@ -121,7 +121,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
 	} else {
-		http.Error(writer, err.Error(), http.StatusInternalServerError)
+		util.HTTPError(writer, &context)
 	}
 }
 
@@ -188,10 +188,10 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 			writer.Write(bytes)
 			util.LogInfo(&context, "Asset: "+string(bytes))
 		} else {
-			http.Error(writer, "Failed to acquire activation information for "+options.ID+": "+err.Error(), http.StatusInternalServerError)
+			util.HTTPError(writer, &context)
 		}
 	} else {
-		http.Error(writer, "Failed to acquire metadata information for "+options.ID+": "+err.Error(), http.StatusInternalServerError)
+		util.HTTPError(writer, &context)
 	}
 }
 
@@ -247,6 +247,6 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 		bytes, _ := ioutil.ReadAll(response.Body)
 		writer.Write(bytes)
 	} else {
-		http.Error(writer, "Failed to acquire metadata information for "+options.ID+": "+err.Error(), http.StatusInternalServerError)
+		util.HTTPError(writer, &context)
 	}
 }
