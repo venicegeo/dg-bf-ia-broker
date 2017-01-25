@@ -99,12 +99,12 @@ cp $GOPATH/bin/$APP ./$APP.bin
 tar cvzf $APP.$EXT \
     $APP.bin \
     planet.cov \
-#    planet-lint.txt \
     planet.cov.txt \
     tides.cov \
-#    tides-lint.txt \
     tides.cov.txt \
     util.cov \
-#    util-lint.txt \
     util.cov.txt
+#    tides-lint.txt \
+#    util-lint.txt \
+#    planet-lint.txt \
 tar tzf $APP.$EXT
