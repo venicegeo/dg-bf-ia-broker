@@ -168,12 +168,16 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 
 	itemType := vars["itemType"]
 	switch itemType {
-	case "rapideye":
+	case "REOrthoTile", "rapideye":
 		options.ItemType = "REOrthoTile"
-	case "planetscope":
+	case "PSOrthoTile", "planetscope":
 		options.ItemType = "PSOrthoTile"
+	case "PSScene4Band":
+		// No op
 	default:
-		options.ItemType = itemType
+		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
+		http.Error(writer, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	if feature, err = GetMetadata(options, &context); err == nil {

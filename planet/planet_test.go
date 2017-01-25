@@ -85,6 +85,12 @@ func TestPlanet(t *testing.T) {
 	b, _ := geojson.Write(feature)
 	fmt.Print(string(b))
 
+	// Test - Metadata, bad image ID
+	aOptions = MetadataOptions{ID: "xxx" + scenes.Features[0].IDStr(), Tides: true, ItemType: "PSOrthoTile"}
+	if _, err = GetMetadata(aOptions, &context); err == nil {
+		t.Error("Expected operation to fail but it succeeded.")
+	}
+
 	// Test - Activation
 	if _, err = GetAsset(aOptions, &context); err != nil {
 		t.Errorf("Failed to get asset; received: %v", err.Error())
