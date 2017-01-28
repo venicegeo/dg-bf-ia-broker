@@ -27,6 +27,16 @@ import (
 
 var httpClient *http.Client
 
+// HTTPErr represents any HTTP error
+type HTTPErr struct {
+	Status  int
+	Message string
+}
+
+func (err HTTPErr) Error() string {
+	return fmt.Sprintf("%d: %v", err.Status, err.Message)
+}
+
 // HTTPClient is a factory method for a http.Client suitable for common operations
 func HTTPClient() *http.Client {
 	if httpClient == nil {

@@ -53,6 +53,7 @@ func TestHandlers(t *testing.T) {
 	router := mux.NewRouter()
 	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
 	router.HandleFunc("/planet/activate/{itemType}/{id}", ActivateHandler)
+	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
 	router.ServeHTTP(writer, request)
 
 	if writer.StatusCode != http.StatusOK {
@@ -87,7 +88,6 @@ func TestHandlers(t *testing.T) {
 		t.Error(err.Error())
 	}
 	writer, _, _ = util.GetMockResponseWriter()
-	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
 	router.ServeHTTP(writer, request)
 	if writer.StatusCode != http.StatusOK {
 		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
@@ -101,8 +101,8 @@ func TestHandlers(t *testing.T) {
 	}
 	writer, _, _ = util.GetMockResponseWriter()
 	router.ServeHTTP(writer, request)
-	if writer.StatusCode == http.StatusOK {
-		t.Error("Expected request to fail but it succeeded.")
+	if writer.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected request to return a 404 but it returned a %v.", writer.StatusCode)
 	}
 
 	// Test: Activate (happy)

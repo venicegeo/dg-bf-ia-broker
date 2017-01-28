@@ -246,9 +246,16 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
+	switch {
+	case response.StatusCode == http.StatusNotFound:
+		err := util.HTTPErr{Status: http.StatusNotFound, Message: response.Status}
+		util.LogAlert(context, fmt.Sprintf("Failed to find metadata for scene %v. ", options.ID))
+		return nil, err
+	case response.StatusCode < 200 || response.StatusCode >= 300:
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to retrieve metadata for scene %v. ", options.ID), errors.New(response.Status))
 		return nil, err
+	default:
+		//no op
 	}
 	if err = json.Unmarshal(body, &feature); err != nil {
 		plErr := util.Error{LogMsg: "Failed to Unmarshal response from Planet Labs data request: " + err.Error(),

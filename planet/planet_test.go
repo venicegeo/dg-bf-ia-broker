@@ -19,6 +19,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
@@ -89,6 +90,8 @@ func TestPlanet(t *testing.T) {
 	aOptions = MetadataOptions{ID: "xxx" + scenes.Features[0].IDStr(), Tides: true, ItemType: "PSOrthoTile"}
 	if _, err = GetMetadata(aOptions, &context); err == nil {
 		t.Error("Expected operation to fail but it succeeded.")
+	} else if _, ok := err.(util.HTTPErr); !ok {
+		t.Errorf("Expected an HTTPErr, got a %T", err)
 	}
 
 	// Test - Activation

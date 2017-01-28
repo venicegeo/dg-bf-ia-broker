@@ -192,10 +192,20 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 			writer.Write(bytes)
 			util.LogInfo(&context, "Asset: "+string(bytes))
 		} else {
-			util.HTTPError(writer, &context)
+			switch herr := err.(type) {
+			case util.HTTPErr:
+				http.Error(writer, herr.Message, herr.Status)
+			default:
+				util.HTTPError(writer, &context)
+			}
 		}
 	} else {
-		util.HTTPError(writer, &context)
+		switch herr := err.(type) {
+		case util.HTTPErr:
+			http.Error(writer, herr.Message, herr.Status)
+		default:
+			util.HTTPError(writer, &context)
+		}
 	}
 }
 
