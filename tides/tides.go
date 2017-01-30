@@ -148,8 +148,8 @@ func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.Feature
 				continue
 			}
 			currentScene.Properties["CurrentTide"] = tideObj.Results.CurrTide
-			currentScene.Properties["24hrMinTide"] = tideObj.Results.MinTide
-			currentScene.Properties["24hrMaxTide"] = tideObj.Results.MaxTide
+			currentScene.Properties["MinimumTide24Hours"] = tideObj.Results.MinTide
+			currentScene.Properties["MaximumTide24Hours"] = tideObj.Results.MaxTide
 			features[inx] = currentScene
 		}
 		result = geojson.NewFeatureCollection(features)
