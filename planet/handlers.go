@@ -54,8 +54,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		cloudCover float64
 		context    Context
 	)
-
-	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
 
 	if util.Preflight(writer, request) {
 		return
@@ -146,7 +145,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		asset   Asset
 	)
 
-	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
 
 	if util.Preflight(writer, request) {
 		return
@@ -190,6 +189,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 			}
 			writer.Header().Set("Content-Type", "application/json")
 			writer.Write(bytes)
+
 			util.LogInfo(&context, "Asset: "+string(bytes))
 		} else {
 			switch herr := err.(type) {
@@ -227,7 +227,7 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 		response *http.Response
 	)
 
-	util.LogInfo(&context, "Calling "+request.Method+" on "+request.URL.String())
+	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
 
 	if util.Preflight(writer, request) {
 		return

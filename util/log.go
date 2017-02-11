@@ -48,6 +48,12 @@ var (
 	logFunc func(string)
 )
 
+func init() {
+	logFunc = func(logString string) {
+		fmt.Println(logString)
+	}
+}
+
 // logMessage receives a string to put to the logs.  It formats it correctly
 // and puts it in the right place.  This function exists partially in order
 // to simplify the task of modifying log behavior in the future.  Note that
@@ -57,11 +63,6 @@ var (
 // to call ReadyLog before the first call to logMessage.
 func logMessage(lc LogContext, prefix, message string) {
 	_, file, line, _ := runtime.Caller(2)
-	if logFunc == nil {
-		logFunc = func(logString string) {
-			fmt.Println(logString)
-		}
-	}
 	if lc.LogRootDir() != "" {
 		splits := strings.SplitAfter(file, lc.LogRootDir())
 		if len(splits) > 1 {
@@ -96,6 +97,33 @@ func LogSimpleErr(lc LogContext, message string, err error) LoggedError {
 	return fmt.Errorf(message)
 }
 
+// LogAudit posts a logMessage call for messages that are generated to
+// conform to Audit requirements.  This function is intended to maintain
+// uniformity of appearance and behavior, and also to ease maintainability
+// when routing requirements change.
+func LogAudit(lc LogContext, actor, action, actee, msg string, severity int) {
+	time := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
+
+	hostName, _ := os.Hostname()
+	outStr := fmt.Sprintf(`<%d>1 %s %s %s - ID%d [pzaudit@48851 actor="%s" action="%s" actee="%s"] %s`,
+		8+severity, time, hostName, lc.AppName(), os.Getpid(), actor, action, actee, msg)
+	logFunc(outStr)
+	//logMessage(s, "AUDIT", actor+": "+action+": "+actee)
+}
+
+// LogAuditResponse is LogAudit for those cases where it needs to include an HTTP response
+// body, and that body is not being conveniently read and outputted by some other function.
+// It reads the response, logs the result, and replaces the consumed response body with a
+// fresh one made from the read buffer, so that it doesn't interfere with any other function
+// that woudl wish to access the body.
+func LogAuditResponse(lc LogContext, actor, action, actee string, resp *http.Response, severity int) {
+	bbuff, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(bbuff))
+	trimPld := strings.Replace(string(bbuff), "\n", "", -1)
+	LogAudit(lc, actor, action, actee, trimPld, severity)
+}
+
 // LoggedError is a duplicate of the "error" interface.  Its real point is to
 // indicate, when it is returned from a function, that the error it represents
 // has already been entered intot he log and does not need to be entered again.
@@ -126,31 +154,4 @@ func (tc *BasicLogContext) SessionID() string {
 // LogRootDir returns an empty string
 func (tc *BasicLogContext) LogRootDir() string {
 	return ""
-}
-
-// LogAudit posts a logMessage call for messages that are generated to
-// conform to Audit requirements.  This function is intended to maintain
-// uniformity of appearance and behavior, and also to ease maintainability
-// when routing requirements change.
-func LogAudit(lc LogContext, actor, action, actee, msg string, severity int) {
-	time := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
-
-	hostName, _ := os.Hostname()
-	outStr := fmt.Sprintf(`<%d>1 %s %s %s - ID%d [pzaudit@48851 actor="%s" action="%s" actee="%s"] %s`,
-		8+severity, time, hostName, lc.AppName(), os.Getpid(), actor, action, actee, msg)
-	logFunc(outStr)
-	//logMessage(s, "AUDIT", actor+": "+action+": "+actee)
-}
-
-// LogAuditResponse is LogAudit for those cases where it needs to include an HTTP response
-// body, and that body is not beign conveniently read and outputted by some other function.
-// It reads the response, logs the result, and replaces the consumed response body with a
-// fresh one made from the read buffer, so that it doesn't interfere with any other function
-// that woudl wish to access the body.
-func LogAuditResponse(lc LogContext, actor, action, actee string, resp *http.Response, severity int) {
-	bbuff, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(bbuff))
-	trimPld := strings.Replace(string(bbuff), "\n", "", -1)
-	LogAudit(lc, actor, action, actee, trimPld, severity)
 }

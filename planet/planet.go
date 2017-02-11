@@ -212,7 +212,6 @@ func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 		assets   Assets
 	)
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
-	util.LogInfo(context, "Calling Planet Labs "+inputURL)
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
 		return result, err
 	}
@@ -239,7 +238,6 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 		feature  geojson.Feature
 	)
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID
-	util.LogInfo(context, "Calling Planet Labs "+inputURL)
 	input := doRequestInput{method: "GET", inputURL: inputURL}
 	if response, err = doRequest(input, context); err != nil {
 		return nil, err
@@ -313,7 +311,7 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		}
 		inputURL = parsedURL.String()
 	}
-	util.LogInfo(context, fmt.Sprintf("Calling %v at %v", input.method, inputURL))
+	util.LogAudit(context, "anon user", input.method, inputURL, "", util.INFO)
 	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
 		return nil, err
