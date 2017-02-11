@@ -15,9 +15,25 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"os"
 	"runtime"
 	"strings"
+	"time"
+)
+
+// various constants representing the levels of severity for a given audit message
+const (
+	FATAL    = 0
+	CRITICAL = 2
+	ERROR    = 3
+	WARN     = 4
+	NOTICE   = 5
+	INFO     = 6
+	DEBUG    = 7
 )
 
 // LogContext is an interface for all context objects, usable in logging
@@ -110,4 +126,31 @@ func (tc *BasicLogContext) SessionID() string {
 // LogRootDir returns an empty string
 func (tc *BasicLogContext) LogRootDir() string {
 	return ""
+}
+
+// LogAudit posts a logMessage call for messages that are generated to
+// conform to Audit requirements.  This function is intended to maintain
+// uniformity of appearance and behavior, and also to ease maintainability
+// when routing requirements change.
+func LogAudit(lc LogContext, actor, action, actee, msg string, severity int) {
+	time := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
+
+	hostName, _ := os.Hostname()
+	outStr := fmt.Sprintf(`<%d>1 %s %s %s - ID%d [pzaudit@48851 actor="%s" action="%s" actee="%s"] %s`,
+		8+severity, time, hostName, lc.AppName(), os.Getpid(), actor, action, actee, msg)
+	logFunc(outStr)
+	//logMessage(s, "AUDIT", actor+": "+action+": "+actee)
+}
+
+// LogAuditResponse is LogAudit for those cases where it needs to include an HTTP response
+// body, and that body is not beign conveniently read and outputted by some other function.
+// It reads the response, logs the result, and replaces the consumed response body with a
+// fresh one made from the read buffer, so that it doesn't interfere with any other function
+// that woudl wish to access the body.
+func LogAuditResponse(lc LogContext, actor, action, actee string, resp *http.Response, severity int) {
+	bbuff, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	resp.Body = ioutil.NopCloser(bytes.NewBuffer(bbuff))
+	trimPld := strings.Replace(string(bbuff), "\n", "", -1)
+	LogAudit(lc, actor, action, actee, trimPld, severity)
 }

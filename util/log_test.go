@@ -25,4 +25,5 @@ func TestLog(t *testing.T) {
 	LogAlert(context, "Here is an alert.")
 	LogSimpleErr(context, "Here is an error.", errors.New("Error happened."))
 	LogInfo(context, "Here is an info.")
+	LogAudit(context, "log_test", "Test Audit", "LogAudit", "", DEBUG)
 }
