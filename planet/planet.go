@@ -311,11 +311,12 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		}
 		inputURL = parsedURL.String()
 	}
-	util.LogAudit(context, "anon user", input.method, inputURL, "", util.INFO)
+	util.LogAudit(context, util.LogAuditInput{Actor: "planet/doRequest", Action: input.method, Actee: inputURL, Message: "Requesting data from Planet Labs", Severity: util.INFO})
 	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
 		return nil, err
 	}
+	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	if input.contentType != "" {
 		request.Header.Set("Content-Type", input.contentType)
 	}

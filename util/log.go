@@ -97,18 +97,27 @@ func LogSimpleErr(lc LogContext, message string, err error) LoggedError {
 	return fmt.Errorf(message)
 }
 
+// LogAuditInput is the set of inputs for the LogAudit function
+type LogAuditInput struct {
+	Actor    string
+	Action   string
+	Actee    string
+	Message  string
+	Severity int
+	Response *http.Response // only for LogAuditResponse
+}
+
 // LogAudit posts a logMessage call for messages that are generated to
 // conform to Audit requirements.  This function is intended to maintain
 // uniformity of appearance and behavior, and also to ease maintainability
 // when routing requirements change.
-func LogAudit(lc LogContext, actor, action, actee, msg string, severity int) {
+func LogAudit(lc LogContext, input LogAuditInput) {
 	time := time.Now().UTC().Format("2006-01-02T15:04:05.999Z")
 
 	hostName, _ := os.Hostname()
 	outStr := fmt.Sprintf(`<%d>1 %s %s %s - ID%d [pzaudit@48851 actor="%s" action="%s" actee="%s"] %s`,
-		8+severity, time, hostName, lc.AppName(), os.Getpid(), actor, action, actee, msg)
+		8+input.Severity, time, hostName, lc.AppName(), os.Getpid(), input.Actor, input.Action, input.Actee, input.Message)
 	logFunc(outStr)
-	//logMessage(s, "AUDIT", actor+": "+action+": "+actee)
 }
 
 // LogAuditResponse is LogAudit for those cases where it needs to include an HTTP response
@@ -116,12 +125,12 @@ func LogAudit(lc LogContext, actor, action, actee, msg string, severity int) {
 // It reads the response, logs the result, and replaces the consumed response body with a
 // fresh one made from the read buffer, so that it doesn't interfere with any other function
 // that woudl wish to access the body.
-func LogAuditResponse(lc LogContext, actor, action, actee string, resp *http.Response, severity int) {
-	bbuff, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	resp.Body = ioutil.NopCloser(bytes.NewBuffer(bbuff))
-	trimPld := strings.Replace(string(bbuff), "\n", "", -1)
-	LogAudit(lc, actor, action, actee, trimPld, severity)
+func LogAuditResponse(lc LogContext, input LogAuditInput) {
+	bbuff, _ := ioutil.ReadAll(input.Response.Body)
+	input.Response.Body.Close()
+	input.Response.Body = ioutil.NopCloser(bytes.NewBuffer(bbuff))
+	input.Message = strings.Replace(string(bbuff), "\n", "", -1)
+	LogAudit(lc, input)
 }
 
 // LoggedError is a duplicate of the "error" interface.  Its real point is to

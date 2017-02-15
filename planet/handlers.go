@@ -54,16 +54,16 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		cloudCover float64
 		context    Context
 	)
-	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
+	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /discover request", Severity: util.INFO})
 
-	if util.Preflight(writer, request) {
+	if util.Preflight(writer, request, &context) {
 		return
 	}
 
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 	if context.PlanetKey == "" {
-		util.LogAlert(&context, noPlanetKey)
-		http.Error(writer, noPlanetKey, http.StatusBadRequest)
+		util.LogSimpleErr(&context, noPlanetKey, nil)
+		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -73,8 +73,8 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	if ccStr != "" {
 		if cloudCover, err = strconv.ParseFloat(ccStr, 64); err != nil {
 			message := fmt.Sprintf(invalidCloudCover, ccStr)
-			util.LogInfo(&context, message)
-			http.Error(writer, message, http.StatusBadRequest)
+			util.LogSimpleErr(&context, message, err)
+			util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
 			return
 		}
 		cloudCover = cloudCover / 100.0
@@ -89,16 +89,18 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	case "PSScene4Band":
 		// No op
 	default:
-		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
+		util.LogSimpleErr(&context, message, nil)
+		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
 		return
 	}
 
 	bboxString := request.FormValue("bbox")
 	if bboxString != "" {
 		if bbox, err = geojson.NewBoundingBox(bboxString); err != nil {
-			err = util.LogSimpleErr(&context, fmt.Sprintf("The bbox value of %v is invalid", bboxString), err)
-			http.Error(writer, err.Error(), http.StatusBadRequest)
+			message := fmt.Sprintf("The bbox value of %v is invalid", bboxString)
+			util.LogSimpleErr(&context, message, err)
+			util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
 			return
 		}
 	}
@@ -114,13 +116,15 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	if fc, err = GetScenes(options, &context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
 			err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", fc), err)
-			http.Error(writer, err.Error(), http.StatusInternalServerError)
+			util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
+		util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method + " response", Actee: request.URL.String(), Message: "Sending /discover response", Severity: util.INFO})
 	} else {
-		util.HTTPError(writer, &context)
+		err = util.LogSimpleErr(&context, "Failed to get Planet Labs scenes.", err)
+		util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -145,21 +149,24 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		asset   Asset
 	)
 
-	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
+	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/{itemType}/{id} request", Severity: util.INFO})
 
-	if util.Preflight(writer, request) {
+	if util.Preflight(writer, request, &context) {
 		return
 	}
 	vars := mux.Vars(request)
 	options.ID = vars["id"]
 	if options.ID == "" {
-		http.Error(writer, noPlanetImageID, http.StatusBadRequest)
+
+		util.LogSimpleErr(&context, noPlanetImageID, nil)
+		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
-		http.Error(writer, "This operation requires a Planet Labs API key.", http.StatusBadRequest)
+		util.LogAlert(&context, noPlanetKey)
+		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -174,8 +181,9 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 	case "PSScene4Band":
 		// No op
 	default:
-		err = util.LogSimpleErr(&context, fmt.Sprintf("The item type value of %v is invalid", itemType), err)
-		http.Error(writer, err.Error(), http.StatusBadRequest)
+		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
+		util.LogSimpleErr(&context, message, nil)
+		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
 		return
 	}
 
@@ -184,27 +192,30 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 			injectAssetIntoMetadata(feature, asset)
 			if bytes, err = geojson.Write(feature); err != nil {
 				err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", feature), err)
-				http.Error(writer, err.Error(), http.StatusInternalServerError)
+				util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			writer.Header().Set("Content-Type", "application/json")
 			writer.Write(bytes)
 
 			util.LogInfo(&context, "Asset: "+string(bytes))
+			util.LogAudit(&context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response" + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
 		} else {
 			switch herr := err.(type) {
 			case util.HTTPErr:
-				http.Error(writer, herr.Message, herr.Status)
+				util.HTTPError(request, writer, &context, herr.Message, herr.Status)
 			default:
-				util.HTTPError(writer, &context)
+				err = util.LogSimpleErr(&context, "Failed to get Planet Labs asset information", err)
+				util.HTTPError(request, writer, &context, err.Error(), 0)
 			}
 		}
 	} else {
 		switch herr := err.(type) {
 		case util.HTTPErr:
-			http.Error(writer, herr.Message, herr.Status)
+			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
 		default:
-			util.HTTPError(writer, &context)
+			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scene metadata", err)
+			util.HTTPError(request, writer, &context, err.Error(), 0)
 		}
 	}
 }
@@ -227,21 +238,24 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 		response *http.Response
 	)
 
-	util.LogAudit(&context, "anon user", request.Method, request.URL.String(), "", util.INFO)
+	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/activate/{itemType}/{id} request", Severity: util.INFO})
 
-	if util.Preflight(writer, request) {
+	if util.Preflight(writer, request, &context) {
 		return
 	}
 	vars := mux.Vars(request)
 	options.ID = vars["id"]
 	if options.ID == "" {
-		http.Error(writer, noPlanetImageID, http.StatusBadRequest)
+		util.LogSimpleErr(&context, noPlanetImageID, nil)
+		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
-		http.Error(writer, "This operation requires a Planet Labs API key.", http.StatusBadRequest)
+
+		util.LogAlert(&context, noPlanetKey)
+		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -261,10 +275,14 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 		if (response.StatusCode >= 200) && (response.StatusCode < 300) {
 			bytes, _ := ioutil.ReadAll(response.Body)
 			writer.Write(bytes)
+			util.LogAudit(&context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
 		} else {
-			http.Error(writer, response.Status, response.StatusCode)
+			message := fmt.Sprintf("Failed to activate Planet Labs scene: " + response.Status)
+			err = util.LogSimpleErr(&context, message, nil)
+			util.HTTPError(request, writer, &context, err.Error(), response.StatusCode)
 		}
 	} else {
-		util.HTTPError(writer, &context)
+		err = util.LogSimpleErr(&context, "Failed to activate Planet Labs scene", err)
+		util.HTTPError(request, writer, &context, err.Error(), 0)
 	}
 }

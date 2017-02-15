@@ -140,8 +140,9 @@ func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.Feature
 	)
 	tin = toTidesIn(fc.Features, context)
 	features := make([]*geojson.Feature, len(fc.Features))
-	util.LogAudit(context, "anon user", "POST", tidesURL, "Retrieving tide information", util.INFO)
+	util.LogAudit(context, util.LogAuditInput{Actor: "anon user", Action: "POST", Actee: tidesURL, Message: "Requesting tide information", Severity: util.INFO})
 	if _, err = util.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err == nil {
+		util.LogAudit(context, util.LogAuditInput{Actor: tidesURL, Action: "POST response", Actee: "anon user", Message: "Retrieving tide information", Severity: util.INFO})
 		for inx, tideObj := range tout.Locations {
 			if currentScene, ok = tin.Map[tideObj.Dtg]; !ok {
 				util.LogInfo(context, "Failed to find location for "+tideObj.Dtg)

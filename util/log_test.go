@@ -21,9 +21,9 @@ import (
 
 func TestLog(t *testing.T) {
 	context := &BasicLogContext{}
-
+	message := "Here is an info."
 	LogAlert(context, "Here is an alert.")
 	LogSimpleErr(context, "Here is an error.", errors.New("Error happened."))
-	LogInfo(context, "Here is an info.")
-	LogAudit(context, "log_test", "Test Audit", "LogAudit", "", DEBUG)
+	LogInfo(context, message)
+	LogAudit(context, LogAuditInput{Actor: "log_test", Action: "Test Audit", Actee: "LogAudit", Message: message, Severity: DEBUG})
 }

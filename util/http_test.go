@@ -18,6 +18,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -159,10 +160,11 @@ func TestHttpResponseWriter(t *testing.T) {
 }
 
 func TestHTTPError(t *testing.T) {
+	request := httptest.NewRequest("GET", "foo://bar.bas", nil)
 	writer, _, _ := GetMockResponseWriter()
 	lc := &BasicLogContext{}
 	LogSimpleErr(lc, "Test Error.", errors.New("Test Error for TestHTTPError."))
-	HTTPError(writer, lc)
+	HTTPError(request, writer, lc, "", 0)
 	LogInfo(lc, writer.OutputString)
 }
 

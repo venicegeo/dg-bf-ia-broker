@@ -232,7 +232,7 @@ func HTTPOut(w http.ResponseWriter, output string, code int) {
 
 // Preflight sets up the CORS stuff and
 // returns TRUE if this is an OPTIONS request
-func Preflight(w http.ResponseWriter, r *http.Request) bool {
+func Preflight(w http.ResponseWriter, r *http.Request, lc LogContext) bool {
 	if origin := r.Header.Get("Origin"); origin != "" {
 		w.Header().Set("Access-Control-Allow-Origin", origin)
 		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
@@ -240,7 +240,11 @@ func Preflight(w http.ResponseWriter, r *http.Request) bool {
 			"Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	}
 
-	return (r.Method == "OPTIONS")
+	if r.Method == "OPTIONS" {
+		LogAudit(lc, LogAuditInput{Actor: r.URL.String(), Action: r.Method, Actee: "anon user", Message: "Returning Preflight", Severity: INFO})
+		return true
+	}
+	return false
 }
 
 // PrintJSON marshals the given object, turns it into a string, and feeds it to
@@ -256,6 +260,13 @@ func PrintJSON(w http.ResponseWriter, output interface{}, httpStatus int) []byte
 }
 
 // HTTPError provides an error message that conceals the detailed information for security reasons
-func HTTPError(w http.ResponseWriter, context LogContext) {
-	http.Error(w, fmt.Sprintf("An error occurred. Please contact your system administrator. Session ID: %v", context.SessionID()), http.StatusInternalServerError)
+func HTTPError(r *http.Request, w http.ResponseWriter, context LogContext, message string, status int) {
+	if status == 0 {
+		status = http.StatusInternalServerError
+	}
+	LogAudit(context, LogAuditInput{Actor: r.URL.String(), Action: r.Method + " response", Actee: "anon user", Message: "Returning error response", Severity: INFO})
+	if message == "" {
+		message = fmt.Sprintf("An error occurred. Please contact your system administrator. Session ID: %v", context.SessionID())
+	}
+	http.Error(w, message, status)
 }

@@ -22,6 +22,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
 	"github.com/venicegeo/bf-ia-broker/planet"
+	"github.com/venicegeo/bf-ia-broker/util"
 )
 
 func serve() {
@@ -29,8 +30,14 @@ func serve() {
 	portStr := ":8080"
 	router := mux.NewRouter()
 
+	context := &(util.BasicLogContext{})
+
+	util.LogAudit(context, util.LogAuditInput{Actor: "serve()", Action: "startup", Actee: "self", Message: "Application Startup", Severity: util.INFO})
+
 	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		util.LogAudit(context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving / request", Severity: util.INFO})
 		fmt.Fprintf(writer, "Hi")
+		util.LogAudit(context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending / response", Severity: util.INFO})
 	})
 	router.HandleFunc("/planet/discover/{itemType}", planet.DiscoverHandler)
 	router.HandleFunc("/planet/{itemType}/{id}", planet.MetadataHandler)
