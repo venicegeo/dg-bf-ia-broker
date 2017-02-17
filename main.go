@@ -25,9 +25,11 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"github.com/venicegeo/bf-ia-broker/util"
 )
 
 func main() {
+	util.LogAudit(&(util.BasicLogContext{}), util.LogAuditInput{Actor: "main()", Action: "startup", Actee: "self", Message: "Application Startup", Severity: util.INFO})
 	Execute()
 }
 
