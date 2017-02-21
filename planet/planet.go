@@ -245,11 +245,12 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
 	switch {
-	case response.StatusCode == http.StatusNotFound:
-		err := util.HTTPErr{Status: http.StatusNotFound, Message: response.Status}
-		util.LogAlert(context, fmt.Sprintf("Failed to find metadata for scene %v. ", options.ID))
+	case (response.StatusCode >= 400) && (response.StatusCode < 500):
+		message := fmt.Sprintf("Failed to find metadata for scene %v: %v. ", options.ID, response.Status)
+		err := util.HTTPErr{Status: response.StatusCode, Message: message}
+		util.LogAlert(context, message)
 		return nil, err
-	case response.StatusCode < 200 || response.StatusCode >= 300:
+	case response.StatusCode >= 500:
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to retrieve metadata for scene %v. ", options.ID), errors.New(response.Status))
 		return nil, err
 	default:
@@ -354,13 +355,17 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 
 func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties := make(map[string]interface{})
-	properties["cloudCover"] = feature.Properties["cloud_cover"].(float64) * 100.0
+	if cc, ok := feature.Properties["cloud_cover"].(float64); ok {
+		properties["cloudCover"] = cc * 100.0
+	} else {
+		properties["cloudCover"] = -1.0
+	}
 	id := feature.IDStr()
-	properties["resolution"] = feature.Properties["gsd"].(float64)
-	adString := feature.Properties["acquired"].(string)
+	properties["resolution"], _ = feature.Properties["gsd"].(float64)
+	adString, _ := feature.Properties["acquired"].(string)
 	properties["acquiredDate"] = adString
 	properties["fileFormat"] = "geotiff"
-	properties["sensorName"] = feature.Properties["satellite_id"].(string)
+	properties["sensorName"], _ = feature.Properties["satellite_id"].(string)
 	result := geojson.NewFeature(feature.Geometry, id, properties)
 	result.Bbox = result.ForceBbox()
 	return result

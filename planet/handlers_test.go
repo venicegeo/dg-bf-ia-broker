@@ -66,6 +66,7 @@ func TestHandlers(t *testing.T) {
 	id := fci.(*geojson.FeatureCollection).Features[0].IDStr()
 
 	// Test: Activate, no Image ID
+	// We can't currently run activate tests because some images we receive are not activatable
 	// if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
 	// 	t.Error(err.Error())
 	// }

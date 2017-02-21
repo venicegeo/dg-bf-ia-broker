@@ -34,16 +34,16 @@ func TestPlanet(t *testing.T) {
 	context.PlanetKey = os.Getenv("PL_API_KEY")
 	options.ItemType = "REOrthoTile"
 
-	body := `{ 
-   "item_types":[  
-      "REOrthoTile"
-   ],
-   "filter":{  
-      "type":"AndFilter",
-      "config":[
-        ]
-      }
-}`
+	body := `{
+	   "item_types":[
+	      "REOrthoTile"
+	   ],
+	   "filter":{
+	      "type":"AndFilter",
+	      "config":[
+	        ]
+	      }
+	}`
 
 	// Test 1 - No parameters
 	if _, err = doRequest(doRequestInput{method: "POST", inputURL: "data/v1/quick-search", body: []byte(body), contentType: "application/json"}, &context); err != nil {
@@ -97,5 +97,12 @@ func TestPlanet(t *testing.T) {
 	// Test - Activation
 	if _, err = GetAsset(aOptions, &context); err != nil {
 		t.Errorf("Failed to get asset; received: %v", err.Error())
+	}
+
+	// Test - Metadata, bad PK_API_KEY
+	context.PlanetKey = "garbage"
+	aOptions = MetadataOptions{ID: scenes.Features[0].IDStr(), Tides: true, ItemType: "PSOrthoTile"}
+	if _, err = GetMetadata(aOptions, &context); err == nil {
+		t.Error("Expected operation to fail but it succeeded.")
 	}
 }

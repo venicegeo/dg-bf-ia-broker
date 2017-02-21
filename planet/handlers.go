@@ -205,7 +205,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 			case util.HTTPErr:
 				util.HTTPError(request, writer, &context, herr.Message, herr.Status)
 			default:
-				err = util.LogSimpleErr(&context, "Failed to get Planet Labs asset information", err)
+				err = util.LogSimpleErr(&context, "Failed to get Planet Labs asset information. ", err)
 				util.HTTPError(request, writer, &context, err.Error(), 0)
 			}
 		}
@@ -214,7 +214,7 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		case util.HTTPErr:
 			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
 		default:
-			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scene metadata", err)
+			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scene metadata. ", err)
 			util.HTTPError(request, writer, &context, err.Error(), 0)
 		}
 	}
