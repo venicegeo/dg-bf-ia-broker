@@ -75,6 +75,15 @@ type SearchOptions struct {
 	CloudCover      float64
 }
 
+type searchResults struct {
+	Features []feature `json:"features"`
+}
+
+type feature struct {
+	Links       Links    `json:"_links"`
+	Permissions []string `json:"_permissions"`
+}
+
 type request struct {
 	ItemTypes []string `json:"item_types"`
 	Filter    filter   `json:"filter"`
@@ -326,14 +335,25 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 	return util.HTTPClient().Do(request)
 }
 
+func scontains(input []string, check string) bool {
+	for _, curr := range input {
+		if curr == check {
+			return true
+		}
+	}
+	return false
+}
+
 // Transforms search results into a FeatureCollection for later use
 func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureCollection, error) {
 	var (
-		result *geojson.FeatureCollection
-		fc     *geojson.FeatureCollection
-		fci    interface{}
-		err    error
-		ok     bool
+		result    *geojson.FeatureCollection
+		fc        *geojson.FeatureCollection
+		fci       interface{}
+		err       error
+		ok        bool
+		features  []*geojson.Feature
+		plResults searchResults
 	)
 	if fci, err = geojson.Parse(body); err != nil {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to parse GeoJSON.\n%v", string(body)), err)
@@ -345,9 +365,17 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 		err = plErr.Log(context, "")
 		return nil, err
 	}
-	features := make([]*geojson.Feature, len(fc.Features))
+	if err = json.Unmarshal(body, &plResults); err != nil {
+		return result, err
+	}
 	for inx, curr := range fc.Features {
-		features[inx] = transformSRFeature(curr)
+
+		// We need to suppress scenes that we don't have permissions for
+		if scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
+			features = append(features, transformSRFeature(curr))
+			// } else {
+			// 	util.LogInfo(context, fmt.Sprintf("Skipping scene %v due to lack of permissions.", curr.IDStr()))
+		}
 	}
 	result = geojson.NewFeatureCollection(features)
 	return result, nil
