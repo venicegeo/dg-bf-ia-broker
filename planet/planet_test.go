@@ -86,17 +86,17 @@ func TestPlanet(t *testing.T) {
 	b, _ := geojson.Write(feature)
 	fmt.Print(string(b))
 
+	// Test - Activation
+	if _, err = GetAsset(aOptions, &context); err != nil {
+		t.Errorf("Failed to get asset; received: %v", err.Error())
+	}
+
 	// Test - Metadata, bad image ID
 	aOptions = MetadataOptions{ID: "xxx" + scenes.Features[0].IDStr(), Tides: true, ItemType: "PSOrthoTile"}
 	if _, err = GetMetadata(aOptions, &context); err == nil {
 		t.Error("Expected operation to fail but it succeeded.")
 	} else if _, ok := err.(util.HTTPErr); !ok {
 		t.Errorf("Expected an HTTPErr, got a %T", err)
-	}
-
-	// Test - Activation
-	if _, err = GetAsset(aOptions, &context); err != nil {
-		t.Errorf("Failed to get asset; received: %v", err.Error())
 	}
 
 	// Test - Metadata, bad PK_API_KEY

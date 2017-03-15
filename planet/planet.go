@@ -187,16 +187,21 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to complete Planet Labs request %#v.", req), err)
 		return nil, err
 	}
+	switch {
+	case (response.StatusCode >= 400) && (response.StatusCode < 500):
+		message := fmt.Sprintf("Failed to discover scenes from Planet Labs: %v. ", response.Status)
+		err := util.HTTPErr{Status: response.StatusCode, Message: message}
+		util.LogAlert(context, message)
+		return nil, err
+	case response.StatusCode >= 500:
+		err = util.LogSimpleErr(context, "Failed to discover scenes from Planet Labs.", errors.New(response.Status))
+		return nil, err
+	default:
+		//no op
+	}
+
 	defer response.Body.Close()
 	responseBody, _ = ioutil.ReadAll(response.Body)
-
-	if (response.StatusCode < http.StatusOK) || (response.StatusCode >= http.StatusMultipleChoices) {
-		plErr := util.Error{SimpleMsg: fmt.Sprintf("Received \"%v\" from Planet Labs", response.Status),
-			Response: string(responseBody),
-			Request:  string(requestBody)}
-		err = plErr.Log(context, "")
-		return nil, err
-	}
 
 	if fc, err = transformSRBody(responseBody, context); err != nil {
 		return nil, err
@@ -223,6 +228,18 @@ func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
 		return result, err
+	}
+	switch {
+	case (response.StatusCode >= 400) && (response.StatusCode < 500):
+		message := fmt.Sprintf("Failed to get asset information for scene %v: %v. ", options.ID, response.Status)
+		err := util.HTTPErr{Status: response.StatusCode, Message: message}
+		util.LogAlert(context, message)
+		return result, err
+	case response.StatusCode >= 500:
+		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to get asset information for scene %v. ", options.ID), errors.New(response.Status))
+		return result, err
+	default:
+		//no op
 	}
 	defer response.Body.Close()
 	body, _ = ioutil.ReadAll(response.Body)
