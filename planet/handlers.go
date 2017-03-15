@@ -287,7 +287,12 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 			util.HTTPError(request, writer, &context, err.Error(), response.StatusCode)
 		}
 	} else {
-		err = util.LogSimpleErr(&context, "Failed to activate Planet Labs scene", err)
-		util.HTTPError(request, writer, &context, err.Error(), 0)
+		switch herr := err.(type) {
+		case util.HTTPErr:
+			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+		default:
+			err = util.LogSimpleErr(&context, "Failed to activate Planet Labs scene. ", err)
+			util.HTTPError(request, writer, &context, err.Error(), 0)
+		}
 	}
 }

@@ -118,8 +118,19 @@ func TestHandlers(t *testing.T) {
 		t.Errorf("Expected request to return a 404 but it returned a %v.", writer.StatusCode)
 	}
 
+	// Test: Activate (invalid PL key)
+	activateURL := fmt.Sprintf(fakeActivateURL, id, "foo")
+	if request, err = http.NewRequest("POST", activateURL, nil); err != nil {
+		t.Error(err.Error())
+	}
+	writer, _, _ = util.GetMockResponseWriter()
+	router.ServeHTTP(writer, request)
+	if writer.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected request to return a 401 but it returned a %v.", writer.StatusCode)
+	}
+
 	// Test: Activate (happy)
-	activateURL := fmt.Sprintf(fakeActivateURL, id, os.Getenv("PL_API_KEY"))
+	activateURL = fmt.Sprintf(fakeActivateURL, id, os.Getenv("PL_API_KEY"))
 	if request, err = http.NewRequest("POST", activateURL, nil); err != nil {
 		t.Error(err.Error())
 	}
