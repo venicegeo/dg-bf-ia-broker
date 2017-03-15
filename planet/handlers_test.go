@@ -35,14 +35,30 @@ func TestHandlers(t *testing.T) {
 		request *http.Request
 		fci     interface{}
 	)
+
+	router := mux.NewRouter()
+	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
+	router.HandleFunc("/planet/activate/{itemType}/{id}", ActivateHandler)
+	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
+
 	// Test: No API Key
 	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, ""), nil); err != nil {
 		t.Error(err.Error())
 	}
 	writer, _, _ := util.GetMockResponseWriter()
-	DiscoverHandler(writer, request)
+	router.ServeHTTP(writer, request)
 	if writer.StatusCode == http.StatusOK {
 		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
+	}
+
+	// Test: Invalid API Key
+	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, "foo"), nil); err != nil {
+		t.Error(err.Error())
+	}
+	writer, _, _ = util.GetMockResponseWriter()
+	router.ServeHTTP(writer, request)
+	if writer.StatusCode != http.StatusUnauthorized {
+		t.Errorf("Expected request to fail due to unauthorized API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
 	}
 
 	// Test: Discover (Happy)
@@ -50,10 +66,6 @@ func TestHandlers(t *testing.T) {
 		t.Error(err.Error())
 	}
 	writer, _, _ = util.GetMockResponseWriter()
-	router := mux.NewRouter()
-	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
-	router.HandleFunc("/planet/activate/{itemType}/{id}", ActivateHandler)
-	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
 	router.ServeHTTP(writer, request)
 
 	if writer.StatusCode != http.StatusOK {

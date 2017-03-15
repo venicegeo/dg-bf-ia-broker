@@ -123,8 +123,13 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		writer.Write(bytes)
 		util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method + " response", Actee: request.URL.String(), Message: "Sending /discover response", Severity: util.INFO})
 	} else {
-		err = util.LogSimpleErr(&context, "Failed to get Planet Labs scenes.", err)
-		util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
+		switch herr := err.(type) {
+		case util.HTTPErr:
+			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+		default:
+			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scenes. ", err)
+			util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
