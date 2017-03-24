@@ -90,10 +90,16 @@ func LogAlert(lc LogContext, message string) {
 // LogSimpleErr posts a logMessage call for simple error messages, and produces a pzsvc.Error
 // from the result.  The point is mostly to maintain uniformity of appearance and behavior.
 func LogSimpleErr(lc LogContext, message string, err error) LoggedError {
-	if err != nil {
+	// If by some chance we get back our own error message, catch it appropriately
+	if ourError, ok := err.(*Error); ok {
+		ourError.Log(lc, message)
 		message += err.Error()
+	} else {
+		if err != nil {
+			message += err.Error()
+		}
+		logMessage(lc, "ERROR", message)
 	}
-	logMessage(lc, "ERROR", message)
 	return fmt.Errorf(message)
 }
 
