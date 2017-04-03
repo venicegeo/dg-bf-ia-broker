@@ -30,7 +30,7 @@ func serve() {
 	planetBaseURL := os.Getenv("PL_API_URL")
 	if planetBaseURL == "" {
 		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = "https://api.planet.com/"
+		planetBaseURL = "https://api.planet.com"
 	}
 	config := util.Configuration{BasePlanetAPIURL: planetBaseURL}
 
