@@ -31,12 +31,9 @@ import (
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-const fakeDiscoverURL = "%s/planet/discover/rapideye?PL_API_KEY=%v"
-const fakeMetadataURL = "%s/planet/rapideye/%v?PL_API_KEY=%v"
-const fakeActivateURL = "%s/planet/activate/rapideye/%v?PL_API_KEY=%v"
-
 const invalidKey = "INVALID_KEY"
 const validKey = "VALID_KEY"
+const validItemID = "foobar123"
 
 var defaultHandlerConfig = util.Configuration{}
 
@@ -46,6 +43,10 @@ func getDiscoverURL(host string, apiKey string) string {
 
 func getMetadataURL(host string, apiKey string, itemType string, id string) string {
 	return fmt.Sprintf("%s/planet/%s/%s?PL_API_KEY=%s", host, itemType, id, apiKey)
+}
+
+func getActivateURL(host string, apiKey string, id string) string {
+	return fmt.Sprintf("%s/planet/rapideye/%s?PL_API_KEY=%s", host, id, apiKey)
 }
 
 func checkAuthorization(authHeader string) bool {
@@ -107,7 +108,7 @@ func createMockPlanetAPIServer() *httptest.Server {
 		itemType := mux.Vars(request)["itemType"]
 		itemID := mux.Vars(request)["itemID"]
 
-		if itemType == "" || itemID == "" {
+		if itemType == "" || itemID != validItemID {
 			writer.WriteHeader(404)
 			writer.Write([]byte("Not found"))
 			return
@@ -183,7 +184,7 @@ func TestDiscoverHandlerSuccess(t *testing.T) {
 func TestMetadataHandlerSuccess(t *testing.T) {
 	mockServer, router := createFixtures()
 	defer mockServer.Close()
-	url := getMetadataURL(mockServer.URL, validKey, "rapideye", "foobar123")
+	url := getMetadataURL(mockServer.URL, validKey, "rapideye", validItemID)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -201,6 +202,18 @@ func TestMetadataHandlerImageIDNotFound(t *testing.T) {
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
 	assert.Equal(t, http.StatusNotFound, recorder.Code,
 		"Expected request to return a 404 but it returned a %v.", recorder.Code,
+	)
+}
+
+func TestActivateHandlerInvalidKey(t *testing.T) {
+	mockServer, router := createFixtures()
+	defer mockServer.Close()
+	url := getActivateURL(mockServer.URL, invalidKey, "foobar123")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code,
+		"Expected request to return a 401 but it returned a %v.", recorder.Code,
 	)
 }
 
