@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
@@ -31,18 +30,9 @@ import (
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-var baseURLString string
-
-func init() {
-	baseURLString = os.Getenv("PL_API_URL")
-	if baseURLString == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		baseURLString = "https://api.planet.com/"
-	}
-}
-
 // Context is the context for a Planet Labs Operation
 type Context struct {
+	BaseURL   string
 	PlanetKey string
 	sessionID string
 }
@@ -327,8 +317,8 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err       error
 	)
 	inputURL = input.inputURL
-	if !strings.Contains(inputURL, baseURLString) {
-		baseURL, _ := url.Parse(baseURLString)
+	if !strings.Contains(inputURL, context.BaseURL) {
+		baseURL, _ := url.Parse(context.BaseURL)
 		parsedRelativeURL, _ := url.Parse(input.inputURL)
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
 

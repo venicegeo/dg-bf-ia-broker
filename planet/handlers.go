@@ -43,7 +43,12 @@ const invalidCloudCover = "Cloud Cover value of %v is invalid."
 // @Success 200 {object}  geojson.FeatureCollection
 // @Failure 400 {object}  string
 // @Router /planet/discover/{itemType} [get]
-func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
+type DiscoverHandler struct {
+	Config util.Configuration
+}
+
+// ServeHTTP implements the http.Handler interface for the DiscoverHandler type
+func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
 		fc         *geojson.FeatureCollection
 		err        error
@@ -60,6 +65,7 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	context.BaseURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 	if context.PlanetKey == "" {
 		util.LogSimpleErr(&context, noPlanetKey, nil)
@@ -144,7 +150,12 @@ func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
 // @Router /planet/{itemType}/{id} [get]
-func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
+type MetadataHandler struct {
+	Config util.Configuration
+}
+
+// ServeHTTP implements the http.Handler interface for the MetadataHandler type
+func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err     error
 		context Context
@@ -167,6 +178,8 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
+
+	context.BaseURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
@@ -235,7 +248,12 @@ func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
 // @Router /planet/activate/{itemType}/{id} [post]
-func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
+type ActivateHandler struct {
+	Config util.Configuration
+}
+
+// ServeHTTP implements the http.Handler interface for the ActivateHandler type
+func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err      error
 		context  Context
@@ -255,6 +273,8 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
+
+	context.BaseURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
