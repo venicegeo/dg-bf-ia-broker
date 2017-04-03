@@ -28,6 +28,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/venicegeo/geojson-go/geojson"
 )
 
 const fakeDiscoverURL = "%s/planet/discover/rapideye?PL_API_KEY=%v"
@@ -66,7 +67,7 @@ func createMockPlanetAPIServer() *httptest.Server {
 			return
 		}
 		writer.WriteHeader(200)
-		writer.Write([]byte("OK"))
+		writer.Write([]byte(`{"type": "FeatureCollection", "features": []}`))
 	})
 	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("Route not available in mocked Planet server"))
@@ -115,6 +116,21 @@ func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code,
 		"Expected request to fail due to unauthorized API Key but received: %v, %v", recorder.Code, recorder.Body.String(),
 	)
+}
+
+func TestDiscoverHandlerSuccess(t *testing.T) {
+	mockServer, router := createFixtures()
+	defer mockServer.Close()
+	url := getDiscoverURL(mockServer.URL, validKey)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Expected request to succeed but received: %v, %v", recorder.Code, recorder.Body.String(),
+	)
+
+	_, err := geojson.Parse(recorder.Body.Bytes())
+	assert.Nil(t, err, "Expected to parse GeoJSON but received: %v", err)
 }
 
 /*
