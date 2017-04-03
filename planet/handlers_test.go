@@ -44,30 +44,77 @@ func getDiscoverURL(host string, apiKey string) string {
 	return fmt.Sprintf("%s/planet/discover/rapideye?PL_API_KEY=%s", host, apiKey)
 }
 
+func getMetadataURL(host string, apiKey string, itemType string, id string) string {
+	return fmt.Sprintf("%s/planet/%s/%s?PL_API_KEY=%s", host, itemType, id, apiKey)
+}
+
+func checkAuthorization(authHeader string) bool {
+	authFields := strings.Fields(authHeader)
+	if len(authFields) < 2 {
+		return false
+	}
+	authMethod := authFields[0]
+	authKey, err := base64.StdEncoding.DecodeString(authFields[1])
+
+	if authMethod != "Basic" {
+		return false
+	}
+
+	if err != nil || string(authKey) != validKey+":" {
+		return false
+	}
+	return true
+}
+
 func createMockPlanetAPIServer() *httptest.Server {
 	router := mux.NewRouter()
+	router.StrictSlash(true)
 	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
-		authFields := strings.Fields(request.Header.Get("Authorization"))
-		if len(authFields) < 2 {
+		if checkAuthorization(request.Header.Get("Authorization")) {
+			writer.WriteHeader(200)
+			writer.Write([]byte(`{"type": "FeatureCollection", "features": []}`))
+		} else {
 			writer.WriteHeader(401)
-			return
+			writer.Write([]byte("Unauthorized"))
 		}
-		authMethod := authFields[0]
-		authKey, err := base64.StdEncoding.DecodeString(authFields[1])
+	})
 
-		if authMethod != "Basic" {
-			writer.WriteHeader(400)
-			writer.Write([]byte("Queried Planet server with non-basic auth"))
-			return
-		}
-
-		if err != nil || string(authKey) == invalidKey+":" {
+	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}", func(writer http.ResponseWriter, request *http.Request) {
+		if !checkAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
-			writer.Write([]byte("Bad auth token"))
+			writer.Write([]byte("Unauthorized"))
 			return
 		}
+		itemType := mux.Vars(request)["itemType"]
+		itemID := mux.Vars(request)["itemID"]
+
+		if itemType == "" || itemID == "" {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Not found"))
+			return
+		}
+
 		writer.WriteHeader(200)
-		writer.Write([]byte(`{"type": "FeatureCollection", "features": []}`))
+		writer.Write([]byte("{}"))
+	})
+
+	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
+		if !checkAuthorization(request.Header.Get("Authorization")) {
+			writer.WriteHeader(401)
+			writer.Write([]byte("Unauthorized"))
+			return
+		}
+		itemType := mux.Vars(request)["itemType"]
+		itemID := mux.Vars(request)["itemID"]
+
+		if itemType == "" || itemID == "" {
+			writer.WriteHeader(404)
+			writer.Write([]byte("Not found"))
+			return
+		}
+
+		writer.WriteHeader(200)
+		writer.Write([]byte("{}"))
 	})
 	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.Write([]byte("Route not available in mocked Planet server"))
@@ -131,6 +178,19 @@ func TestDiscoverHandlerSuccess(t *testing.T) {
 
 	_, err := geojson.Parse(recorder.Body.Bytes())
 	assert.Nil(t, err, "Expected to parse GeoJSON but received: %v", err)
+}
+
+func TestMetadataHandlerSuccess(t *testing.T) {
+	mockServer, router := createFixtures()
+	defer mockServer.Close()
+	url := getMetadataURL(mockServer.URL, validKey, "rapideye", "foobar123")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Expected request to succeed but received: %v, %v", recorder.Code, recorder.Body.String(),
+	)
+
 }
 
 /*
