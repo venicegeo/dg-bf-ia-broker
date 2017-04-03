@@ -211,9 +211,21 @@ func TestActivateHandlerInvalidKey(t *testing.T) {
 	url := getActivateURL(mockServer.URL, invalidKey, "foobar123")
 	recorder := httptest.NewRecorder()
 
-	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
 	assert.Equal(t, http.StatusUnauthorized, recorder.Code,
 		"Expected request to return a 401 but it returned a %v.", recorder.Code,
+	)
+}
+
+func TestActivateHandlerSuccess(t *testing.T) {
+	mockServer, router := createFixtures()
+	defer mockServer.Close()
+	url := getActivateURL(mockServer.URL, validKey, "foobar123")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Unexpected error in response to request. %v %v", recorder.Code, recorder.Body.String(),
 	)
 }
 
