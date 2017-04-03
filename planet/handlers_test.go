@@ -190,7 +190,18 @@ func TestMetadataHandlerSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, recorder.Code,
 		"Expected request to succeed but received: %v, %v", recorder.Code, recorder.Body.String(),
 	)
+}
 
+func TestMetadataHandlerImageIDNotFound(t *testing.T) {
+	mockServer, router := createFixtures()
+	defer mockServer.Close()
+	url := getMetadataURL(mockServer.URL, validKey, "rapideye", "")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusNotFound, recorder.Code,
+		"Expected request to return a 404 but it returned a %v.", recorder.Code,
+	)
 }
 
 /*
