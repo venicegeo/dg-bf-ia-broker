@@ -111,9 +111,23 @@ func TestGetMetadata(t *testing.T) {
 
 	aOptions := MetadataOptions{ID: scenes.Features[0].IDStr(), Tides: true, ItemType: "REOrthoTile"}
 	feature, err := GetMetadata(aOptions, &context)
-	assert.Nil(t, err, "Failed to get asset; received: %v", err)
+	assert.Nil(t, err, "Failed to get asset metadata; received: %v", err)
 
 	assert.Equal(t, aOptions.ID, feature.IDStr())
+}
+
+func TestGetAsset(t *testing.T) {
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
+
+	options := SearchOptions{Tides: true}
+
+	scenes, err := GetScenes(options, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+
+	aOptions := MetadataOptions{ID: scenes.Features[0].IDStr(), Tides: true, ItemType: "REOrthoTile"}
+	_, err = GetAsset(aOptions, &context)
+	assert.Nil(t, err, "Failed to get asset; received %v", err)
 }
 
 func TestPlanet(t *testing.T) { /*
