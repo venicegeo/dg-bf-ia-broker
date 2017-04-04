@@ -15,6 +15,61 @@ const testingInvalidKey = "INVALID_KEY"
 const testingValidKey = "VALID_KEY"
 const testingValidItemID = "foobar123"
 
+const testingSampleSearchResult = `{
+	"type": "FeatureCollection",
+	"bbox": [100.0, 0.0, 105.0, 1.0],
+	"acquiredDate": "2006-01-02T15:04:05Z",
+	"features": [{
+		"id": "foobar123",
+		"type": "Polygon",
+		"bbox": [100.0, 0.0, 105.0, 1.0],
+		"geometry": {
+			"type": "Polygon",
+			"coordinates": [[
+				[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]
+				]]
+			},
+		"properties": {
+			"currentTide": 1.0,
+			"acquired": "2006-01-02T15:04:05Z",
+			"gsd": 6.5,
+			"satellite_id": "RapidEye-1",
+			"cloud_cover": 0.5
+		},
+		"_permissions": ["assets.analytic:download"]
+}]}`
+
+const testingSampleFeatureResult = `{
+	"id": "foobar123",
+	"type": "Polygon",
+	"bbox": [100.0, 0.0, 105.0, 1.0],
+	"geometry": {
+		"type": "Polygon",
+		"coordinates": [[
+			[-10.0, -10.0], [10.0, -10.0], [10.0, 10.0], [-10.0, 10.0]
+			]]
+		},
+	"properties": {
+		"currentTide": 1.0,
+		"acquired": "2006-01-02T15:04:05Z",
+		"gsd": 6.5,
+		"satellite_id": "RapidEye-1",
+		"cloud_cover": 0.5
+	},
+	"_permissions": ["assets.analytic:download"]
+	}`
+
+const testingSampleTidesResult = `{"locations":[{
+	"lat": 0,
+	"lon": 0,
+	"dtg": "2006-01-02-15-04",
+	"results": {
+		"minimumTide24Hours": 10,
+		"maximumTide24Hours": 20,
+		"currentTide": 15
+	}
+}]}`
+
 func makeDiscoverTestingURL(host string, apiKey string) string {
 	return fmt.Sprintf("%s/planet/discover/rapideye?PL_API_KEY=%s", host, apiKey)
 }
@@ -51,7 +106,7 @@ func createMockPlanetAPIServer() *httptest.Server {
 	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
 		if testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(200)
-			writer.Write([]byte(`{"type": "FeatureCollection", "features": []}`))
+			writer.Write([]byte(testingSampleSearchResult))
 		} else {
 			writer.WriteHeader(401)
 			writer.Write([]byte("Unauthorized"))
@@ -74,7 +129,7 @@ func createMockPlanetAPIServer() *httptest.Server {
 		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte("{}"))
+		writer.Write([]byte(testingSampleFeatureResult))
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
@@ -108,7 +163,7 @@ func createMockTidesServer() *httptest.Server {
 	router.StrictSlash(true)
 	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(200)
-		writer.Write([]byte("{}"))
+		writer.Write([]byte(testingSampleTidesResult))
 	})
 	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
 		writer.WriteHeader(404)

@@ -287,6 +287,7 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 		var (
 			tc tides.Context
 		)
+		tc.TidesURL = context.BaseTidesURL
 		fc := geojson.NewFeatureCollection([]*geojson.Feature{&feature})
 		if fc, err = tides.GetTides(fc, &tc); err != nil {
 			return nil, err
