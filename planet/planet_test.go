@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/venicegeo/geojson-go/geojson"
 )
 
 func makeTestingContext(baseURL string) Context {
@@ -50,6 +51,19 @@ func TestPlanetNoParameters(t *testing.T) {
 	}
 
 	_, err := doRequest(requestInput, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
+
+func TestGetScenesBoundingBox(t *testing.T) {
+	planetServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer.URL)
+
+	var options SearchOptions
+	bbox, err := geojson.NewBoundingBox("139,50,140,51")
+	assert.Nil(t, err, "Failed creating bounding box %v", err)
+	options.Bbox = bbox
+
+	_, err = GetScenes(options, &context)
 	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
 }
 
