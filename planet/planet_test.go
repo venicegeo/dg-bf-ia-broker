@@ -143,6 +143,20 @@ func TestGetMetadataBadAssetID(t *testing.T) {
 	}
 }
 
+func TestGetMetadataBadKey(t *testing.T) {
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
+	context.PlanetKey = "garbage"
+	aOptions := MetadataOptions{ID: "foobar123", Tides: true, ItemType: "PSOrthoTile"}
+	_, err := GetMetadata(aOptions, &context)
+	assert.NotNil(t, err, "Expected invalid API key to fail, but it succeeded.")
+	if httpErr, ok := err.(util.HTTPErr); err != nil && !ok {
+		t.Errorf("Expected an HTTPErr, got a %T", err)
+	} else {
+		assert.Equal(t, 401, httpErr.Status, "Expected error 401 but got %v", httpErr.Status)
+	}
+}
+
 func TestPlanet(t *testing.T) { /*
 		var (
 			options SearchOptions
