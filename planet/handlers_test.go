@@ -15,137 +15,19 @@
 package planet
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"strings"
-
-	"encoding/base64"
-
-	"github.com/gorilla/mux"
-	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-const invalidKey = "INVALID_KEY"
-const validKey = "VALID_KEY"
-const validItemID = "foobar123"
-
-var defaultHandlerConfig = util.Configuration{}
-
-func getDiscoverURL(host string, apiKey string) string {
-	return fmt.Sprintf("%s/planet/discover/rapideye?PL_API_KEY=%s", host, apiKey)
-}
-
-func getMetadataURL(host string, apiKey string, itemType string, id string) string {
-	return fmt.Sprintf("%s/planet/%s/%s?PL_API_KEY=%s", host, itemType, id, apiKey)
-}
-
-func getActivateURL(host string, apiKey string, id string) string {
-	return fmt.Sprintf("%s/planet/rapideye/%s?PL_API_KEY=%s", host, id, apiKey)
-}
-
-func checkAuthorization(authHeader string) bool {
-	authFields := strings.Fields(authHeader)
-	if len(authFields) < 2 {
-		return false
-	}
-	authMethod := authFields[0]
-	authKey, err := base64.StdEncoding.DecodeString(authFields[1])
-
-	if authMethod != "Basic" {
-		return false
-	}
-
-	if err != nil || string(authKey) != validKey+":" {
-		return false
-	}
-	return true
-}
-
-func createMockPlanetAPIServer() *httptest.Server {
-	router := mux.NewRouter()
-	router.StrictSlash(true)
-	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
-		if checkAuthorization(request.Header.Get("Authorization")) {
-			writer.WriteHeader(200)
-			writer.Write([]byte(`{"type": "FeatureCollection", "features": []}`))
-		} else {
-			writer.WriteHeader(401)
-			writer.Write([]byte("Unauthorized"))
-		}
-	})
-
-	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}", func(writer http.ResponseWriter, request *http.Request) {
-		if !checkAuthorization(request.Header.Get("Authorization")) {
-			writer.WriteHeader(401)
-			writer.Write([]byte("Unauthorized"))
-			return
-		}
-		itemType := mux.Vars(request)["itemType"]
-		itemID := mux.Vars(request)["itemID"]
-
-		if itemType == "" || itemID == "" {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Not found"))
-			return
-		}
-
-		writer.WriteHeader(200)
-		writer.Write([]byte("{}"))
-	})
-
-	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
-		if !checkAuthorization(request.Header.Get("Authorization")) {
-			writer.WriteHeader(401)
-			writer.Write([]byte("Unauthorized"))
-			return
-		}
-		itemType := mux.Vars(request)["itemType"]
-		itemID := mux.Vars(request)["itemID"]
-
-		if itemType == "" || itemID != validItemID {
-			writer.WriteHeader(404)
-			writer.Write([]byte("Not found"))
-			return
-		}
-
-		writer.WriteHeader(200)
-		writer.Write([]byte("{}"))
-	})
-	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.Write([]byte("Route not available in mocked Planet server"))
-		writer.WriteHeader(404)
-	})
-	server := httptest.NewServer(router)
-	return server
-}
-
-func createTestRouter(planetAPIURL string) *mux.Router {
-	handlerConfig := util.Configuration{BasePlanetAPIURL: planetAPIURL}
-	router := mux.NewRouter()
-	router.Handle("/planet/discover/{itemType}", DiscoverHandler{Config: handlerConfig})
-	router.Handle("/planet/{itemType}/{id}", MetadataHandler{Config: handlerConfig})
-	router.Handle("/planet/activate/{itemType}/{id}", ActivateHandler{Config: handlerConfig})
-	return router
-}
-
-func createFixtures() (mockPlanet *httptest.Server, testRouter *mux.Router) {
-	mockPlanet = createMockPlanetAPIServer()
-	testRouter = createTestRouter(mockPlanet.URL)
-	return
-}
-
-// ===========
-
 func TestDiscoverHandlerNoAPIKey(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getDiscoverURL(mockServer.URL, "")
+	url := makeDiscoverTestingURL(mockServer.URL, "")
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -155,9 +37,9 @@ func TestDiscoverHandlerNoAPIKey(t *testing.T) {
 }
 
 func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getDiscoverURL(mockServer.URL, invalidKey)
+	url := makeDiscoverTestingURL(mockServer.URL, testingInvalidKey)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -167,9 +49,9 @@ func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
 }
 
 func TestDiscoverHandlerSuccess(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getDiscoverURL(mockServer.URL, validKey)
+	url := makeDiscoverTestingURL(mockServer.URL, testingValidKey)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -182,9 +64,9 @@ func TestDiscoverHandlerSuccess(t *testing.T) {
 }
 
 func TestMetadataHandlerSuccess(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getMetadataURL(mockServer.URL, validKey, "rapideye", validItemID)
+	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", testingValidItemID)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -194,9 +76,9 @@ func TestMetadataHandlerSuccess(t *testing.T) {
 }
 
 func TestMetadataHandlerImageIDNotFound(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getMetadataURL(mockServer.URL, validKey, "rapideye", "")
+	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", "")
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
@@ -206,9 +88,9 @@ func TestMetadataHandlerImageIDNotFound(t *testing.T) {
 }
 
 func TestActivateHandlerInvalidKey(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getActivateURL(mockServer.URL, invalidKey, "foobar123")
+	url := makeActivateTestingURL(mockServer.URL, testingInvalidKey, "foobar123")
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
@@ -218,9 +100,9 @@ func TestActivateHandlerInvalidKey(t *testing.T) {
 }
 
 func TestActivateHandlerSuccess(t *testing.T) {
-	mockServer, router := createFixtures()
+	mockServer, router := createTestFixtures()
 	defer mockServer.Close()
-	url := getActivateURL(mockServer.URL, validKey, "foobar123")
+	url := makeActivateTestingURL(mockServer.URL, testingValidKey, "foobar123")
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))

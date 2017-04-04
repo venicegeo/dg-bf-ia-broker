@@ -14,31 +14,24 @@
 
 package planet
 
-import (
-	"fmt"
-	"os"
-	"testing"
+import "testing"
 
-	"github.com/venicegeo/bf-ia-broker/util"
-	"github.com/venicegeo/geojson-go/geojson"
-)
+func TestBatch(t *testing.T) { /*
+		var (
+			options SearchOptions
+			context Context
+		)
 
-func TestBatch(t *testing.T) {
-	var (
-		options SearchOptions
-		context Context
-	)
+		context.PlanetKey = os.Getenv("PL_API_KEY")
+		options.ItemType = "REOrthoTile"
 
-	context.PlanetKey = os.Getenv("PL_API_KEY")
-	options.ItemType = "REOrthoTile"
+		coordinates := []float64{105.0, 8.5}
+		point := geojson.NewPoint(coordinates)
+		options.Bbox = point.ForceBbox()
 
-	coordinates := []float64{105.0, 8.5}
-	point := geojson.NewPoint(coordinates)
-	options.Bbox = point.ForceBbox()
-
-	if best, err := BestScene(options, &context); err == nil {
-		util.LogInfo(&context, fmt.Sprintf("Found best scene: %v", best))
-	} else {
-		t.Error(err)
-	}
+		if best, err := BestScene(options, &context); err == nil {
+			util.LogInfo(&context, fmt.Sprintf("Found best scene: %v", best))
+		} else {
+			t.Error(err)
+		}*/
 }
