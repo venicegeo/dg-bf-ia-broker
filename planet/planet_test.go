@@ -14,7 +14,44 @@
 
 package planet
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func makeTestingContext(baseURL string) Context {
+	return Context{
+		BaseURL:   baseURL,
+		PlanetKey: testingValidKey,
+	}
+}
+
+func TestPlanetNoParameters(t *testing.T) {
+	planetServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer.URL)
+
+	body := `{
+     "item_types":[
+        "REOrthoTile"
+     ],
+     "filter":{
+        "type":"AndFilter",
+        "config":[
+          ]
+        }
+  }`
+
+	requestInput := doRequestInput{
+		method:      "POST",
+		inputURL:    "data/v1/quick-search",
+		body:        []byte(body),
+		contentType: "application/json",
+	}
+
+	_, err := doRequest(requestInput, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
 
 func TestPlanet(t *testing.T) { /*
 		var (
