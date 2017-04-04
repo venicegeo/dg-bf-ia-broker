@@ -122,7 +122,7 @@ func createMockPlanetAPIServer() *httptest.Server {
 		itemType := mux.Vars(request)["itemType"]
 		itemID := mux.Vars(request)["itemID"]
 
-		if itemType == "" || itemID == "" {
+		if itemType == "" || itemID != testingValidItemID {
 			writer.WriteHeader(404)
 			writer.Write([]byte("Not found"))
 			return

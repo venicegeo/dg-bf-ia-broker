@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
@@ -128,6 +129,18 @@ func TestGetAsset(t *testing.T) {
 	aOptions := MetadataOptions{ID: scenes.Features[0].IDStr(), Tides: true, ItemType: "REOrthoTile"}
 	_, err = GetAsset(aOptions, &context)
 	assert.Nil(t, err, "Failed to get asset; received %v", err)
+}
+
+func TestGetMetadataBadAssetID(t *testing.T) {
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
+	aOptions := MetadataOptions{ID: "X-BAD-ID-X", Tides: true, ItemType: "PSOrthoTile"}
+
+	_, err := GetMetadata(aOptions, &context)
+	assert.NotNil(t, err, "Expected invalid ID asset to fail, but it succeeded.")
+	if _, ok := err.(util.HTTPErr); err != nil && !ok {
+		t.Errorf("Expected an HTTPErr, got a %T", err)
+	}
 }
 
 func TestPlanet(t *testing.T) { /*
