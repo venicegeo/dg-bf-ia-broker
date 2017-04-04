@@ -56,6 +56,7 @@ func TestPlanetNoParameters(t *testing.T) {
 
 func TestGetScenesBoundingBox(t *testing.T) {
 	planetServer, _ := createTestFixtures()
+	defer planetServer.Close()
 	context := makeTestingContext(planetServer.URL)
 
 	var options SearchOptions
@@ -69,6 +70,7 @@ func TestGetScenesBoundingBox(t *testing.T) {
 
 func TestGetScenesCloudCover(t *testing.T) {
 	planetServer, _ := createTestFixtures()
+	defer planetServer.Close()
 	context := makeTestingContext(planetServer.URL)
 
 	options := SearchOptions{CloudCover: 0.1}
@@ -79,9 +81,21 @@ func TestGetScenesCloudCover(t *testing.T) {
 
 func TestGetScenesAcquiredDate(t *testing.T) {
 	planetServer, _ := createTestFixtures()
+	defer planetServer.Close()
 	context := makeTestingContext(planetServer.URL)
 
 	options := SearchOptions{AcquiredDate: "2016-01-01T00:00:00Z"}
+
+	_, err := GetScenes(options, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
+
+func TestGetScenesTides(t *testing.T) {
+	planetServer, _ := createTestFixtures()
+	defer planetServer.Close()
+	context := makeTestingContext(planetServer.URL)
+
+	options := SearchOptions{Tides: true}
 
 	_, err := GetScenes(options, &context)
 	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
