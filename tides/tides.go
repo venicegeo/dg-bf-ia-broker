@@ -16,22 +16,11 @@ package tides
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
-
-var tidesURL string
-
-func init() {
-	tidesURL = os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-}
 
 // Context is the context for this operation
 type Context struct {
