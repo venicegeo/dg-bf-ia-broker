@@ -67,6 +67,15 @@ func TestGetScenesBoundingBox(t *testing.T) {
 	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
 }
 
+func TestGetScenesCloudCover(t *testing.T) {
+	planetServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer.URL)
+
+	options := SearchOptions{CloudCover: 0.1}
+	_, err := GetScenes(options, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
+
 func TestPlanet(t *testing.T) { /*
 		var (
 			options SearchOptions
