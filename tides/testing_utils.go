@@ -1,10 +1,12 @@
 package tides
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
 	"github.com/gorilla/mux"
+	"github.com/venicegeo/geojson-go/geojson"
 )
 
 const testingSampleTidesResult = `{"locations":[{
@@ -18,6 +20,8 @@ const testingSampleTidesResult = `{"locations":[{
 	}
 }]}`
 
+// CreateMockTidesServer creates a mocked Tides server instance
+// This is exported because it is needed in testing the planet module
 func CreateMockTidesServer() *httptest.Server {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
@@ -31,4 +35,17 @@ func CreateMockTidesServer() *httptest.Server {
 	})
 	server := httptest.NewServer(router)
 	return server
+}
+
+func getTestingFeatureCollection() (fc *geojson.FeatureCollection, err error) {
+	fci, err := geojson.ParseFile("testdata/fc.geojson")
+	if err != nil {
+		return nil, err
+	}
+
+	var ok bool
+	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
+		return nil, fmt.Errorf("Expected FeatureCollection but received %T", fci)
+	}
+	return fc, nil
 }
