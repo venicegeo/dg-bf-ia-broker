@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"github.com/venicegeo/bf-ia-broker/tides"
 	"github.com/venicegeo/bf-ia-broker/util"
 )
 
@@ -58,17 +59,6 @@ const testingSampleFeatureResult = `{
 	},
 	"_permissions": ["assets.analytic:download"]
 	}`
-
-const testingSampleTidesResult = `{"locations":[{
-	"lat": 0,
-	"lon": 0,
-	"dtg": "2006-01-02-15-04",
-	"results": {
-		"minimumTide24Hours": 10,
-		"maximumTide24Hours": 20,
-		"currentTide": 15
-	}
-}]}`
 
 func makeDiscoverTestingURL(host string, apiKey string) string {
 	return fmt.Sprintf("%s/planet/discover/rapideye?PL_API_KEY=%s", host, apiKey)
@@ -158,21 +148,6 @@ func createMockPlanetAPIServer() *httptest.Server {
 	return server
 }
 
-func createMockTidesServer() *httptest.Server {
-	router := mux.NewRouter()
-	router.StrictSlash(true)
-	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(200)
-		writer.Write([]byte(testingSampleTidesResult))
-	})
-	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.WriteHeader(404)
-		writer.Write([]byte("Route not available in mocked Tides server: " + request.URL.String()))
-	})
-	server := httptest.NewServer(router)
-	return server
-}
-
 func createTestRouter(planetAPIURL string, tidesAPIURL string) *mux.Router {
 	handlerConfig := util.Configuration{
 		BasePlanetAPIURL: planetAPIURL,
@@ -187,7 +162,7 @@ func createTestRouter(planetAPIURL string, tidesAPIURL string) *mux.Router {
 
 func createTestFixtures() (mockPlanet *httptest.Server, mockTides *httptest.Server, testRouter *mux.Router) {
 	mockPlanet = createMockPlanetAPIServer()
-	mockTides = createMockTidesServer()
+	mockTides = tides.CreateMockTidesServer()
 	testRouter = createTestRouter(mockPlanet.URL, mockTides.URL)
 	return
 }
