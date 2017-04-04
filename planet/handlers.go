@@ -65,7 +65,7 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	context.BaseURL = h.Config.BasePlanetAPIURL
+	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 	if context.PlanetKey == "" {
 		util.LogSimpleErr(&context, noPlanetKey, nil)
@@ -179,7 +179,7 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	context.BaseURL = h.Config.BasePlanetAPIURL
+	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
@@ -274,7 +274,7 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	context.BaseURL = h.Config.BasePlanetAPIURL
+	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {

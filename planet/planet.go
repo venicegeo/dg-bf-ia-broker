@@ -32,9 +32,10 @@ import (
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
-	BaseURL   string
-	PlanetKey string
-	sessionID string
+	BasePlanetURL string
+	BaseTidesURL  string
+	PlanetKey     string
+	sessionID     string
 }
 
 // AppName returns an empty string
@@ -197,8 +198,8 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 		return nil, err
 	}
 	if options.Tides {
-		var context tides.Context
-		if fc, err = tides.GetTides(fc, &context); err != nil {
+		tidesContext := tides.Context{TidesURL: context.BaseTidesURL}
+		if fc, err = tides.GetTides(fc, &tidesContext); err != nil {
 			return nil, err
 		}
 	}
@@ -317,8 +318,8 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err       error
 	)
 	inputURL = input.inputURL
-	if !strings.Contains(inputURL, context.BaseURL) {
-		baseURL, _ := url.Parse(context.BaseURL)
+	if !strings.Contains(inputURL, context.BasePlanetURL) {
+		baseURL, _ := url.Parse(context.BasePlanetURL)
 		parsedRelativeURL, _ := url.Parse(input.inputURL)
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
 

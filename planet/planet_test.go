@@ -15,22 +15,24 @@
 package planet
 
 import (
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-func makeTestingContext(baseURL string) Context {
+func makeTestingContext(planetServer *httptest.Server, tidesServer *httptest.Server) Context {
 	return Context{
-		BaseURL:   baseURL,
-		PlanetKey: testingValidKey,
+		BasePlanetURL: planetServer.URL,
+		BaseTidesURL:  tidesServer.URL,
+		PlanetKey:     testingValidKey,
 	}
 }
 
 func TestPlanetNoParameters(t *testing.T) {
-	planetServer, _ := createTestFixtures()
-	context := makeTestingContext(planetServer.URL)
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
 
 	body := `{
      "item_types":[
@@ -55,9 +57,8 @@ func TestPlanetNoParameters(t *testing.T) {
 }
 
 func TestGetScenesBoundingBox(t *testing.T) {
-	planetServer, _ := createTestFixtures()
-	defer planetServer.Close()
-	context := makeTestingContext(planetServer.URL)
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
 
 	var options SearchOptions
 	bbox, err := geojson.NewBoundingBox("139,50,140,51")
@@ -69,9 +70,8 @@ func TestGetScenesBoundingBox(t *testing.T) {
 }
 
 func TestGetScenesCloudCover(t *testing.T) {
-	planetServer, _ := createTestFixtures()
-	defer planetServer.Close()
-	context := makeTestingContext(planetServer.URL)
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
 
 	options := SearchOptions{CloudCover: 0.1}
 
@@ -80,9 +80,8 @@ func TestGetScenesCloudCover(t *testing.T) {
 }
 
 func TestGetScenesAcquiredDate(t *testing.T) {
-	planetServer, _ := createTestFixtures()
-	defer planetServer.Close()
-	context := makeTestingContext(planetServer.URL)
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
 
 	options := SearchOptions{AcquiredDate: "2016-01-01T00:00:00Z"}
 
@@ -91,9 +90,8 @@ func TestGetScenesAcquiredDate(t *testing.T) {
 }
 
 func TestGetScenesTides(t *testing.T) {
-	planetServer, _ := createTestFixtures()
-	defer planetServer.Close()
-	context := makeTestingContext(planetServer.URL)
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
 
 	options := SearchOptions{Tides: true}
 

@@ -25,8 +25,7 @@ import (
 )
 
 func TestDiscoverHandlerNoAPIKey(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeDiscoverTestingURL(mockServer.URL, "")
 	recorder := httptest.NewRecorder()
 
@@ -37,8 +36,7 @@ func TestDiscoverHandlerNoAPIKey(t *testing.T) {
 }
 
 func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeDiscoverTestingURL(mockServer.URL, testingInvalidKey)
 	recorder := httptest.NewRecorder()
 
@@ -49,8 +47,7 @@ func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
 }
 
 func TestDiscoverHandlerSuccess(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeDiscoverTestingURL(mockServer.URL, testingValidKey)
 	recorder := httptest.NewRecorder()
 
@@ -64,8 +61,7 @@ func TestDiscoverHandlerSuccess(t *testing.T) {
 }
 
 func TestMetadataHandlerSuccess(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", testingValidItemID)
 	recorder := httptest.NewRecorder()
 
@@ -76,8 +72,7 @@ func TestMetadataHandlerSuccess(t *testing.T) {
 }
 
 func TestMetadataHandlerImageIDNotFound(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", "")
 	recorder := httptest.NewRecorder()
 
@@ -88,8 +83,7 @@ func TestMetadataHandlerImageIDNotFound(t *testing.T) {
 }
 
 func TestActivateHandlerInvalidKey(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeActivateTestingURL(mockServer.URL, testingInvalidKey, "foobar123")
 	recorder := httptest.NewRecorder()
 
@@ -100,8 +94,7 @@ func TestActivateHandlerInvalidKey(t *testing.T) {
 }
 
 func TestActivateHandlerSuccess(t *testing.T) {
-	mockServer, router := createTestFixtures()
-	defer mockServer.Close()
+	mockServer, _, router := createTestFixtures()
 	url := makeActivateTestingURL(mockServer.URL, testingValidKey, "foobar123")
 	recorder := httptest.NewRecorder()
 

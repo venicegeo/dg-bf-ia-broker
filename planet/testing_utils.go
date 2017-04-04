@@ -96,15 +96,33 @@ func createMockPlanetAPIServer() *httptest.Server {
 		writer.Write([]byte("{}"))
 	})
 	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		writer.Write([]byte("Route not available in mocked Planet server"))
 		writer.WriteHeader(404)
+		writer.Write([]byte("Route not available in mocked Planet server" + request.URL.String()))
 	})
 	server := httptest.NewServer(router)
 	return server
 }
 
-func createTestRouter(planetAPIURL string) *mux.Router {
-	handlerConfig := util.Configuration{BasePlanetAPIURL: planetAPIURL}
+func createMockTidesServer() *httptest.Server {
+	router := mux.NewRouter()
+	router.StrictSlash(true)
+	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(200)
+		writer.Write([]byte("{}"))
+	})
+	router.NotFoundHandler = http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(404)
+		writer.Write([]byte("Route not available in mocked Tides server: " + request.URL.String()))
+	})
+	server := httptest.NewServer(router)
+	return server
+}
+
+func createTestRouter(planetAPIURL string, tidesAPIURL string) *mux.Router {
+	handlerConfig := util.Configuration{
+		BasePlanetAPIURL: planetAPIURL,
+		TidesAPIURL:      tidesAPIURL,
+	}
 	router := mux.NewRouter()
 	router.Handle("/planet/discover/{itemType}", DiscoverHandler{Config: handlerConfig})
 	router.Handle("/planet/{itemType}/{id}", MetadataHandler{Config: handlerConfig})
@@ -112,8 +130,9 @@ func createTestRouter(planetAPIURL string) *mux.Router {
 	return router
 }
 
-func createTestFixtures() (mockPlanet *httptest.Server, testRouter *mux.Router) {
+func createTestFixtures() (mockPlanet *httptest.Server, mockTides *httptest.Server, testRouter *mux.Router) {
 	mockPlanet = createMockPlanetAPIServer()
-	testRouter = createTestRouter(mockPlanet.URL)
+	mockTides = createMockTidesServer()
+	testRouter = createTestRouter(mockPlanet.URL, mockTides.URL)
 	return
 }

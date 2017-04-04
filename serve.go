@@ -32,7 +32,17 @@ func serve() {
 		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
 		planetBaseURL = "https://api.planet.com"
 	}
-	config := util.Configuration{BasePlanetAPIURL: planetBaseURL}
+
+	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
+	if tidesURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
+		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
+	}
+
+	config := util.Configuration{
+		BasePlanetAPIURL: planetBaseURL,
+		TidesAPIURL:      tidesURL,
+	}
 
 	portStr := ":8080"
 	router := mux.NewRouter()

@@ -36,6 +36,7 @@ func init() {
 
 // Context is the context for this operation
 type Context struct {
+	TidesURL  string
 	sessionID string
 }
 
@@ -138,6 +139,7 @@ func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.Feature
 		result       *geojson.FeatureCollection
 		ok           bool
 	)
+	tidesURL := context.TidesURL
 	tin = toTidesIn(fc.Features, context)
 	features := make([]*geojson.Feature, len(fc.Features))
 	util.LogAudit(context, util.LogAuditInput{Actor: "anon user", Action: "POST", Actee: tidesURL, Message: "Requesting tide information", Severity: util.INFO})
