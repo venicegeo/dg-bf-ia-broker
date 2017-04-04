@@ -137,7 +137,6 @@ func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.Feature
 	for _, outputLocation := range tout.Locations {
 		if _, ok := dtgFeatureMap[outputLocation.Dtg]; !ok {
 			util.LogInfo(context, "Failed to find location for output dtg "+outputLocation.Dtg)
-			util.LogInfo(context, fmt.Sprint(dtgFeatureMap))
 			continue
 		}
 		oldFeaturePtr, _ := dtgFeatureMap[outputLocation.Dtg]
