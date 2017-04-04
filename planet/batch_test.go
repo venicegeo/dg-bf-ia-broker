@@ -14,24 +14,29 @@
 
 package planet
 
-import "testing"
+import (
+	"fmt"
+	"testing"
 
-func TestBatch(t *testing.T) { /*
-		var (
-			options SearchOptions
-			context Context
-		)
+	"github.com/stretchr/testify/assert"
+	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/venicegeo/geojson-go/geojson"
+)
 
-		context.PlanetKey = os.Getenv("PL_API_KEY")
-		options.ItemType = "REOrthoTile"
+func TestBestScene(t *testing.T) {
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
+	options := SearchOptions{ItemType: "REOrthoTile"}
 
-		coordinates := []float64{105.0, 8.5}
-		point := geojson.NewPoint(coordinates)
-		options.Bbox = point.ForceBbox()
+	coordinates := []float64{105.0, 8.5}
+	point := geojson.NewPoint(coordinates)
+	options.Bbox = point.ForceBbox()
 
-		if best, err := BestScene(options, &context); err == nil {
-			util.LogInfo(&context, fmt.Sprintf("Found best scene: %v", best))
-		} else {
-			t.Error(err)
-		}*/
+	best, err := BestScene(options, &context)
+	assert.Nil(t, err, "Retrieving best scene failed with %v", err)
+	if err == nil {
+		util.LogInfo(&context, fmt.Sprintf("Found best scene: %v", best))
+	}
+
+	assert.NotEmpty(t, best, "Expected non-empty best scene ID, got empty string")
 }
