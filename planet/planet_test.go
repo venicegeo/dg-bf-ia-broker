@@ -72,8 +72,20 @@ func TestGetScenesCloudCover(t *testing.T) {
 	context := makeTestingContext(planetServer.URL)
 
 	options := SearchOptions{CloudCover: 0.1}
+
 	_, err := GetScenes(options, &context)
 	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
+
+func TestGetScenesAcquiredDate(t *testing.T) {
+	planetServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer.URL)
+
+	options := SearchOptions{AcquiredDate: "2016-01-01T00:00:00Z"}
+
+	_, err := GetScenes(options, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+
 }
 
 func TestPlanet(t *testing.T) { /*
