@@ -1,7 +1,9 @@
 package: github.com/venicegeo/bf-ia-broker
 import:
 - package: github.com/gorilla/mux
+  version: 392c28fe23e1c45ddba891b0320b3b5df220beea
 - package: github.com/spf13/cobra
+  version: 7aeaa2cce6ae7e18d2a6ee597b60ee137e999bd9
 - package: github.com/venicegeo/geojson-go
   subpackages:
   - geojson
