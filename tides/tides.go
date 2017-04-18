@@ -155,7 +155,7 @@ func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.Feature
 		}
 		result = geojson.NewFeatureCollection(features)
 	} else {
-		err = util.LogSimpleErr(context, "Failed to retrieve tides", err)
+		err = util.LogSimpleErr(context, "Failed to retrieve tides. ", err)
 	}
 	return result, err
 }

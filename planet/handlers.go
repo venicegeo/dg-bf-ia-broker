@@ -266,12 +266,17 @@ func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 
 	itemType := vars["itemType"]
 	switch itemType {
-	case "rapideye":
+	case "REOrthoTile", "rapideye":
 		options.ItemType = "REOrthoTile"
-	case "planetscope":
+	case "PSOrthoTile", "planetscope":
 		options.ItemType = "PSOrthoTile"
+	case "PSScene4Band":
+		// No op
 	default:
-		options.ItemType = itemType
+		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
+		util.LogSimpleErr(&context, message, nil)
+		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+		return
 	}
 
 	if response, err = Activate(options, &context); err == nil {
