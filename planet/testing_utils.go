@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/venicegeo/bf-ia-broker/tides"
-	"github.com/venicegeo/bf-ia-broker/util"
 )
 
 const testingInvalidKey = "INVALID_KEY"
@@ -149,14 +149,12 @@ func createMockPlanetAPIServer() *httptest.Server {
 }
 
 func createTestRouter(planetAPIURL string, tidesAPIURL string) *mux.Router {
-	handlerConfig := util.Configuration{
-		BasePlanetAPIURL: planetAPIURL,
-		TidesAPIURL:      tidesAPIURL,
-	}
+	os.Setenv("PL_API_URL", planetAPIURL)
+	os.Setenv("BF_TIDE_PREDICTION_URL", tidesAPIURL)
 	router := mux.NewRouter()
-	router.Handle("/planet/discover/{itemType}", DiscoverHandler{Config: handlerConfig})
-	router.Handle("/planet/{itemType}/{id}", MetadataHandler{Config: handlerConfig})
-	router.Handle("/planet/activate/{itemType}/{id}", ActivateHandler{Config: handlerConfig})
+	router.Handle("/planet/discover/{itemType}", NewDiscoverHandler())
+	router.Handle("/planet/{itemType}/{id}", NewMetadataHandler())
+	router.Handle("/planet/activate/{itemType}/{id}", NewActivateHandler())
 	return router
 }
 
