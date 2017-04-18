@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -28,6 +29,7 @@ import (
 const noPlanetKey = "This operation requires a Planet Labs API key."
 const noPlanetImageID = "This operation requires a Planet Labs image ID."
 const invalidCloudCover = "Cloud Cover value of %v is invalid."
+const defaultPlanetURL = "http://api.planet.com"
 
 // DiscoverHandler is a handler for /planet/discover
 // @Title planetDiscoverHandler
@@ -45,6 +47,22 @@ const invalidCloudCover = "Cloud Cover value of %v is invalid."
 // @Router /planet/discover/{itemType} [get]
 type DiscoverHandler struct {
 	Config util.Configuration
+}
+
+// NewDiscoverHandler creates a new handler using configuration
+// from environment variables
+func NewDiscoverHandler() DiscoverHandler {
+	planetBaseURL := os.Getenv("PL_API_URL")
+	if planetBaseURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
+		planetBaseURL = defaultPlanetURL
+	}
+
+	return DiscoverHandler{
+		Config: util.Configuration{
+			BasePlanetAPIURL: planetBaseURL,
+		},
+	}
 }
 
 // ServeHTTP implements the http.Handler interface for the DiscoverHandler type
@@ -154,6 +172,22 @@ type MetadataHandler struct {
 	Config util.Configuration
 }
 
+// NewMetadataHandler creates a new handler using configuration
+// from environment variables
+func NewMetadataHandler() MetadataHandler {
+	planetBaseURL := os.Getenv("PL_API_URL")
+	if planetBaseURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
+		planetBaseURL = defaultPlanetURL
+	}
+
+	return MetadataHandler{
+		Config: util.Configuration{
+			BasePlanetAPIURL: planetBaseURL,
+		},
+	}
+}
+
 // ServeHTTP implements the http.Handler interface for the MetadataHandler type
 func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
@@ -250,6 +284,22 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 // @Router /planet/activate/{itemType}/{id} [post]
 type ActivateHandler struct {
 	Config util.Configuration
+}
+
+// NewActivateHandler creates a new handler using configuration
+// from environment variables
+func NewActivateHandler() ActivateHandler {
+	planetBaseURL := os.Getenv("PL_API_URL")
+	if planetBaseURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
+		planetBaseURL = "http://api.planet.com"
+	}
+
+	return ActivateHandler{
+		Config: util.Configuration{
+			BasePlanetAPIURL: planetBaseURL,
+		},
+	}
 }
 
 // ServeHTTP implements the http.Handler interface for the ActivateHandler type

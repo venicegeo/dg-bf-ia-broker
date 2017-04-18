@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
@@ -27,23 +26,6 @@ import (
 )
 
 func serve() {
-	planetBaseURL := os.Getenv("PL_API_URL")
-	if planetBaseURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = "https://api.planet.com"
-	}
-
-	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-
-	config := util.Configuration{
-		BasePlanetAPIURL: planetBaseURL,
-		TidesAPIURL:      tidesURL,
-	}
-
 	portStr := ":8080"
 	router := mux.NewRouter()
 
@@ -54,9 +36,9 @@ func serve() {
 		fmt.Fprintf(writer, "Hi")
 		util.LogAudit(context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending / response", Severity: util.INFO})
 	})
-	router.Handle("/planet/discover/{itemType}", planet.DiscoverHandler{Config: config})
-	router.Handle("/planet/{itemType}/{id}", planet.MetadataHandler{Config: config})
-	router.Handle("/planet/activate/{itemType}/{id}", planet.ActivateHandler{Config: config})
+	router.Handle("/planet/discover/{itemType}", planet.NewDiscoverHandler())
+	router.Handle("/planet/{itemType}/{id}", planet.NewMetadataHandler())
+	router.Handle("/planet/activate/{itemType}/{id}", planet.NewActivateHandler())
 	// 	case "/help":
 	// 		fmt.Fprintf(writer, "We're sorry, help is not yet implemented.\n")
 	// 	default:
