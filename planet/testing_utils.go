@@ -75,16 +75,19 @@ func makeActivateTestingURL(host string, apiKey string, id string) string {
 func testingCheckAuthorization(authHeader string) bool {
 	authFields := strings.Fields(authHeader)
 	if len(authFields) < 2 {
+		fmt.Fprintln(os.Stderr, " [AUTH ERROR] Fewer than 2 Authorization fields found")
 		return false
 	}
 	authMethod := authFields[0]
 	authKey, err := base64.StdEncoding.DecodeString(authFields[1])
 
 	if authMethod != "Basic" {
+		fmt.Fprintln(os.Stderr, " [AUTH ERROR] Non-Basic authorization mode")
 		return false
 	}
 
 	if err != nil || string(authKey) != testingValidKey+":" {
+		fmt.Fprintln(os.Stderr, " [AUTH ERROR] Bad auth key", string(authKey), "vs", testingValidKey+":")
 		return false
 	}
 	return true
