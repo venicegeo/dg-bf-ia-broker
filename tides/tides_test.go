@@ -17,27 +17,22 @@ package tides
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-func TestTides(t *testing.T) {
-	var (
-		err     error
-		fci     interface{}
-		context Context
-		fc      *geojson.FeatureCollection
-		ok      bool
-	)
-	if fci, err = geojson.ParseFile("test/fc.geojson"); err != nil {
-		t.Fatalf("Expected to load file but received: %v", err.Error())
+func TestGetTides(t *testing.T) {
+	fc, err := getTestingFeatureCollection()
+	server := CreateMockTidesServer()
+	context := Context{TidesURL: server.URL}
+
+	if err != nil {
+		t.Fatalf("Failed loading testing feature collection %v", err)
 	}
-	if fc, ok = fci.(*geojson.FeatureCollection); !ok {
-		t.Fatalf("Expected FeatureCollection but received %T", fci)
-	}
-	if fc, err = GetTides(fc, &context); err != nil {
-		t.Fatalf("Expected GetTides to succeed but received: %v", err.Error())
-	}
-	if _, err = geojson.Write(fc); err != nil {
-		t.Errorf("Failed to export output from GeoJSON: %v\n%#v", err.Error(), fc)
-	}
+
+	fc, err = GetTides(fc, &context)
+	assert.Nil(t, err, "Expected GetTides to succeed but received: %v", err)
+
+	_, err = geojson.Write(fc)
+	assert.Nil(t, err, "Failed to export output from GeoJSON: %v\n%#v", err)
 }

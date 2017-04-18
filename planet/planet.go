@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
@@ -31,20 +30,12 @@ import (
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-var baseURLString string
-
-func init() {
-	baseURLString = os.Getenv("PL_API_URL")
-	if baseURLString == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		baseURLString = "https://api.planet.com/"
-	}
-}
-
 // Context is the context for a Planet Labs Operation
 type Context struct {
-	PlanetKey string
-	sessionID string
+	BasePlanetURL string
+	BaseTidesURL  string
+	PlanetKey     string
+	sessionID     string
 }
 
 // AppName returns an empty string
@@ -207,8 +198,8 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 		return nil, err
 	}
 	if options.Tides {
-		var context tides.Context
-		if fc, err = tides.GetTides(fc, &context); err != nil {
+		tidesContext := tides.Context{TidesURL: context.BaseTidesURL}
+		if fc, err = tides.GetTides(fc, &tidesContext); err != nil {
 			return nil, err
 		}
 	}
@@ -296,6 +287,7 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 		var (
 			tc tides.Context
 		)
+		tc.TidesURL = context.BaseTidesURL
 		fc := geojson.NewFeatureCollection([]*geojson.Feature{&feature})
 		if fc, err = tides.GetTides(fc, &tc); err != nil {
 			return nil, err
@@ -327,8 +319,8 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err       error
 	)
 	inputURL = input.inputURL
-	if !strings.Contains(inputURL, baseURLString) {
-		baseURL, _ := url.Parse(baseURLString)
+	if !strings.Contains(inputURL, context.BasePlanetURL) {
+		baseURL, _ := url.Parse(context.BasePlanetURL)
 		parsedRelativeURL, _ := url.Parse(input.inputURL)
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
 
