@@ -29,7 +29,6 @@ import (
 const noPlanetKey = "This operation requires a Planet Labs API key."
 const noPlanetImageID = "This operation requires a Planet Labs image ID."
 const invalidCloudCover = "Cloud Cover value of %v is invalid."
-const defaultPlanetURL = "http://api.planet.com"
 
 // DiscoverHandler is a handler for /planet/discover
 // @Title planetDiscoverHandler
@@ -55,12 +54,19 @@ func NewDiscoverHandler() DiscoverHandler {
 	planetBaseURL := os.Getenv("PL_API_URL")
 	if planetBaseURL == "" {
 		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = defaultPlanetURL
+		planetBaseURL = "http://api.planet.com"
+	}
+
+	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
+	if tidesURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
+		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
 	}
 
 	return DiscoverHandler{
 		Config: util.Configuration{
 			BasePlanetAPIURL: planetBaseURL,
+			TidesAPIURL:      tidesURL,
 		},
 	}
 }
@@ -178,12 +184,19 @@ func NewMetadataHandler() MetadataHandler {
 	planetBaseURL := os.Getenv("PL_API_URL")
 	if planetBaseURL == "" {
 		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = defaultPlanetURL
+		planetBaseURL = "http://api.planet.com"
+	}
+
+	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
+	if tidesURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
+		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
 	}
 
 	return MetadataHandler{
 		Config: util.Configuration{
 			BasePlanetAPIURL: planetBaseURL,
+			TidesAPIURL:      tidesURL,
 		},
 	}
 }
@@ -295,9 +308,16 @@ func NewActivateHandler() ActivateHandler {
 		planetBaseURL = "http://api.planet.com"
 	}
 
+	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
+	if tidesURL == "" {
+		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
+		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
+	}
+
 	return ActivateHandler{
 		Config: util.Configuration{
 			BasePlanetAPIURL: planetBaseURL,
+			TidesAPIURL:      tidesURL,
 		},
 	}
 }
