@@ -86,7 +86,6 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	router := mux.NewRouter()
 	router.StrictSlash(false)
 	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
 		request.Header.Write(os.Stdout)
 		if testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(200)
@@ -98,7 +97,6 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
 		request.Header.Write(os.Stdout)
 		if !testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
@@ -119,7 +117,6 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
 		request.Header.Write(os.Stdout)
 		if !testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
@@ -141,7 +138,6 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/assets/{assetID}/activate", func(writer http.ResponseWriter, request *http.Request) {
-		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
 		request.Header.Write(os.Stdout)
 		writer.WriteHeader(200)
 		writer.Write([]byte(testingSampleActivateResult))
