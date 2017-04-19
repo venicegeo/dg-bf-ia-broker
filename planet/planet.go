@@ -341,7 +341,7 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 	}
 
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
-	fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Authorization header: %v\n", request.Header.Get("Authorization"))
+	fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Authorization header passed in: %v\n", request.Header.Get("Authorization"))
 	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	return util.HTTPClient().Do(request)
 }

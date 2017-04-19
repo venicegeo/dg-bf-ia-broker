@@ -62,6 +62,7 @@ func makeActivateTestingURL(host string, apiKey string, itemType string, id stri
 }
 
 func testingCheckAuthorization(authHeader string) bool {
+	fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Authorization header received by mock server: %v\n", authHeader)
 	authFields := strings.Fields(authHeader)
 	if len(authFields) < 2 {
 		fmt.Fprintln(os.Stderr, " [MOCK AUTH ERROR] Fewer than 2 Authorization fields found")
