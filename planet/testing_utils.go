@@ -84,7 +84,7 @@ func testingCheckAuthorization(authHeader string) bool {
 
 func createMockPlanetAPIServer() (server *httptest.Server) {
 	router := mux.NewRouter()
-	router.StrictSlash(true)
+	router.StrictSlash(false)
 	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
 		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
 		request.Header.Write(os.Stdout)
