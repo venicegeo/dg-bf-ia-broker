@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
@@ -335,12 +336,13 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
 		return nil, err
 	}
-	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	if input.contentType != "" {
 		request.Header.Set("Content-Type", input.contentType)
 	}
 
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
+	fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Authorization header: %v\n", request.Header.Get("Authorization"))
+	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	return util.HTTPClient().Do(request)
 }
 
