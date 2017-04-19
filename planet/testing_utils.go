@@ -23,7 +23,7 @@ var testingSampleFeatureResult string
 var testingSampleAssetsResult string
 var testingSampleActivateResult string
 
-func init() {
+func initSampleTestingFiles() {
 	var err error
 	var data []byte
 	panicCheck := func(err error) {
