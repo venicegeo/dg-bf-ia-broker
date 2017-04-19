@@ -84,7 +84,7 @@ func TestMetadataHandlerImageIDNotFound(t *testing.T) {
 
 func TestActivateHandlerInvalidKey(t *testing.T) {
 	mockServer, _, router := createTestFixtures()
-	url := makeActivateTestingURL(mockServer.URL, testingInvalidKey, "foobar123")
+	url := makeActivateTestingURL(mockServer.URL, testingInvalidKey, testingValidItemType, testingValidItemID)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
@@ -95,11 +95,15 @@ func TestActivateHandlerInvalidKey(t *testing.T) {
 
 func TestActivateHandlerSuccess(t *testing.T) {
 	mockServer, _, router := createTestFixtures()
-	url := makeActivateTestingURL(mockServer.URL, testingValidKey, "foobar123")
+	url := makeActivateTestingURL(mockServer.URL, testingValidKey, testingValidItemType, testingValidItemID)
 	recorder := httptest.NewRecorder()
 
 	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
 	assert.Equal(t, http.StatusOK, recorder.Code,
 		"Unexpected error in response to request. %v %v", recorder.Code, recorder.Body.String(),
+	)
+
+	assert.Equal(t, testingSampleActivateResult, recorder.Body.String(),
+		"Unexpected result for asset activation query",
 	)
 }
