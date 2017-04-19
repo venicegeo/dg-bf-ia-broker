@@ -62,7 +62,6 @@ func makeActivateTestingURL(host string, apiKey string, itemType string, id stri
 }
 
 func testingCheckAuthorization(authHeader string) bool {
-	fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Authorization header received by mock server: %v\n", authHeader)
 	authFields := strings.Fields(authHeader)
 	if len(authFields) < 2 {
 		fmt.Fprintln(os.Stderr, " [MOCK AUTH ERROR] Fewer than 2 Authorization fields found")
@@ -87,6 +86,8 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	router := mux.NewRouter()
 	router.StrictSlash(true)
 	router.HandleFunc("/data/v1/quick-search", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
+		request.Header.Write(os.Stdout)
 		if testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(200)
 			writer.Write([]byte(testingSampleSearchResult))
@@ -97,6 +98,8 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
+		request.Header.Write(os.Stdout)
 		if !testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
 			writer.Write([]byte("Unauthorized"))
@@ -116,6 +119,8 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
+		request.Header.Write(os.Stdout)
 		if !testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
 			writer.Write([]byte("Unauthorized"))
@@ -136,6 +141,8 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 	})
 
 	router.HandleFunc("/data/v1/assets/{assetID}/activate", func(writer http.ResponseWriter, request *http.Request) {
+		fmt.Fprintf(os.Stdout, " ***** DEBUG ***** Headers for request:\n")
+		request.Header.Write(os.Stdout)
 		writer.WriteHeader(200)
 		writer.Write([]byte(testingSampleActivateResult))
 	})
