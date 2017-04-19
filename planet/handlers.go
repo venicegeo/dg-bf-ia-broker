@@ -116,6 +116,8 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		itemType = "REOrthoTile"
 	case "PSOrthoTile", "planetscope":
 		itemType = "PSOrthoTile"
+	case "Landsat8L1G", "landsat":
+		itemType = "Landsat8L1G"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -243,6 +245,8 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "REOrthoTile"
 	case "PSOrthoTile", "planetscope":
 		options.ItemType = "PSOrthoTile"
+	case "Landsat8L1G", "landsat":
+		itemType = "Landsat8L1G"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -360,6 +364,8 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "REOrthoTile"
 	case "planetscope":
 		options.ItemType = "PSOrthoTile"
+	case "landsat":
+		options.ItemType = "Landsat8L1G"
 	default:
 		options.ItemType = itemType
 	}
