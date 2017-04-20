@@ -23,12 +23,23 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
 	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
+
+var disablePermissionsCheck bool
+
+func init() {
+	disablePermissionsCheck, _ = strconv.ParseBool(os.Getenv("PL_DISABLE_PERMISSIONS_CHECK"))
+	if disablePermissionsCheck {
+		util.LogInfo(&util.BasicLogContext{}, "Disabling Planet Labs permissions check")
+	}
+}
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
@@ -380,7 +391,7 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 	for inx, curr := range fc.Features {
 
 		// We need to suppress scenes that we don't have permissions for
-		if scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
+		if disablePermissionsCheck || scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
 			features = append(features, transformSRFeature(curr))
 			// } else {
 			// 	util.LogInfo(context, fmt.Sprintf("Skipping scene %v due to lack of permissions.", curr.IDStr()))
