@@ -401,13 +401,13 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 	return result, nil
 }
 
+// To date LandSat IDs come back in the form LC80060522017107LGN00
+// but this could obviously change without notice
 func landsatIDToS3Path(id string) string {
-	result := "https://landsat-pds.s3.amazonaws.com/"
 	if strings.HasPrefix(id, "LC8") {
-		result += "L8/"
+		return "https://landsat-pds.s3.amazonaws.com/L8/" + id[3:6] + "/" + id[6:9] + "/" + id + "/"
 	}
-	result += id[3:6] + "/" + id[6:9] + "/" + id + "/"
-	return result
+	return ""
 }
 
 func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
@@ -423,8 +423,8 @@ func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties["acquiredDate"] = adString
 	properties["fileFormat"] = "geotiff"
 	properties["sensorName"], _ = feature.Properties["satellite_id"].(string)
-	if true {
-		url := landsatIDToS3Path(id)
+	url := landsatIDToS3Path(id)
+	if url != "" {
 		bands := make(map[string]string)
 		bands["coastal"] = url + id + "_B1.TIF"
 		bands["blue"] = url + id + "_B2.TIF"

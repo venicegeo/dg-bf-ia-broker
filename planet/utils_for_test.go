@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"strings"
+	"testing"
 
 	"github.com/gorilla/mux"
 	"github.com/venicegeo/bf-ia-broker/tides"
@@ -22,6 +23,12 @@ var testingSampleSearchResult string
 var testingSampleFeatureResult string
 var testingSampleAssetsResult string
 var testingSampleActivateResult string
+
+func TestMain(m *testing.M) {
+	initSampleTestingFiles()
+	disablePermissionsCheck = true
+	os.Exit(m.Run())
+}
 
 func initSampleTestingFiles() {
 	var err error

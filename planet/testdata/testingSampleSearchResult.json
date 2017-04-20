@@ -49,6 +49,68 @@
         "satellite_id": "RapidEye-1"
       },
       "type": "Polygon"
+    },{
+      "_links": {
+        "_self": "https://api.planet.com/data/v1/item-types/Landsat8L1G/items/LC80220272017107LGN00",
+        "assets": "https://api.planet.com/data/v1/item-types/Landsat8L1G/items/LC80220272017107LGN00/assets/",
+        "thumbnail": "https://api.planet.com/data/v1/item-types/Landsat8L1G/items/LC80220272017107LGN00/thumb"
+      },
+      "_permissions": [],
+      "geometry": {
+        "coordinates": [
+          [
+            [
+              -85.674690592974,
+              48.50882862295448
+            ],
+            [
+              -83.23887103541409,
+              48.080517709510524
+            ],
+            [
+              -83.93748713058342,
+              46.375022633241265
+            ],
+            [
+              -86.29674201496319,
+              46.79969120980652
+            ],
+            [
+              -85.674690592974,
+              48.50882862295448
+            ]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": "LC80220272017107LGN00",
+      "properties": {
+        "acquired": "2017-04-17T16:26:45.393803Z",
+        "anomalous_pixels": 0,
+        "cloud_cover": 0.783,
+        "columns": 7711,
+        "data_type": "L1T",
+        "epsg_code": 32616,
+        "gsd": 30,
+        "instrument": "OLI_TIRS",
+        "item_type": "Landsat8L1G",
+        "origin_x": 551985,
+        "origin_y": 5374515,
+        "pixel_resolution": 30,
+        "provider": "usgs",
+        "published": "2017-04-19T17:56:53Z",
+        "quality_category": "standard",
+        "rows": 7841,
+        "satellite_id": "Landsat8",
+        "sun_azimuth": 151.7,
+        "sun_elevation": 50.3,
+        "updated": "2017-04-19T17:56:53Z",
+        "usable_data": 0.675,
+        "view_angle": 0,
+        "wrs_path": 22,
+        "wrs_row": 27
+      },
+      "type": "Feature"
     }
   ],
   "type": "FeatureCollection"

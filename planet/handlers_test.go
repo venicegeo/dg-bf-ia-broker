@@ -17,18 +17,12 @@ package planet
 import (
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/venicegeo/geojson-go/geojson"
 )
-
-func TestMain(m *testing.M) {
-	initSampleTestingFiles()
-	os.Exit(m.Run())
-}
 
 func TestDiscoverHandlerNoAPIKey(t *testing.T) {
 	mockServer, _, router := createTestFixtures()
