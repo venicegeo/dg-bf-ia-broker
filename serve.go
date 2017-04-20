@@ -37,6 +37,7 @@ func serve() {
 	router.Handle("/planet/discover/{itemType}", planet.NewDiscoverHandler())
 	router.Handle("/planet/{itemType}/{id}", planet.NewMetadataHandler())
 	router.Handle("/planet/activate/{itemType}/{id}", planet.NewActivateHandler())
+
 	// 	case "/help":
 	// 		fmt.Fprintf(writer, "We're sorry, help is not yet implemented.\n")
 	// 	default:

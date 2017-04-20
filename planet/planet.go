@@ -401,6 +401,15 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 	return result, nil
 }
 
+func landsatIDToS3Path(id string) string {
+	result := "https://landsat-pds.s3.amazonaws.com/"
+	if strings.HasPrefix(id, "LC8") {
+		result += "L8/"
+	}
+	result += id[3:6] + "/" + id[6:9] + "/" + id + "/"
+	return result
+}
+
 func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties := make(map[string]interface{})
 	if cc, ok := feature.Properties["cloud_cover"].(float64); ok {
@@ -414,6 +423,22 @@ func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties["acquiredDate"] = adString
 	properties["fileFormat"] = "geotiff"
 	properties["sensorName"], _ = feature.Properties["satellite_id"].(string)
+	if true {
+		url := landsatIDToS3Path(id)
+		bands := make(map[string]string)
+		bands["coastal"] = url + id + "_B1.TIF"
+		bands["blue"] = url + id + "_B2.TIF"
+		bands["green"] = url + id + "_B3.TIF"
+		bands["red"] = url + id + "_B4.TIF"
+		bands["nir"] = url + id + "_B5.TIF"
+		bands["swir1"] = url + id + "_B6.TIF"
+		bands["swir2"] = url + id + "_B7.TIF"
+		bands["panchromatic"] = url + id + "_B8.TIF"
+		bands["cirrus"] = url + id + "_B9.TIF"
+		bands["tirs1"] = url + id + "_B10.TIF"
+		bands["tirs2"] = url + id + "_B11.TIF"
+		properties["bands"] = bands
+	}
 	result := geojson.NewFeature(feature.Geometry, id, properties)
 	result.Bbox = result.ForceBbox()
 	return result
