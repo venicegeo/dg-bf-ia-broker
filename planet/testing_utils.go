@@ -16,7 +16,7 @@ import (
 const testingInvalidKey = "INVALID_KEY"
 const testingValidKey = "VALID_KEY"
 const testingValidItemID = "foobar123"
-const testingValidItemType = "wumpus456"
+const testingValidItemType = "REOrthoTile"
 
 var testingSampleSearchResult string
 var testingSampleFeatureResult string
