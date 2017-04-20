@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -44,35 +43,7 @@ const invalidCloudCover = "Cloud Cover value of %v is invalid."
 // @Success 200 {object}  geojson.FeatureCollection
 // @Failure 400 {object}  string
 // @Router /planet/discover/{itemType} [get]
-type DiscoverHandler struct {
-	Config util.Configuration
-}
-
-// NewDiscoverHandler creates a new handler using configuration
-// from environment variables
-func NewDiscoverHandler() DiscoverHandler {
-	planetBaseURL := os.Getenv("PL_API_URL")
-	if planetBaseURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = "http://api.planet.com"
-	}
-
-	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-
-	return DiscoverHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
-		},
-	}
-}
-
-// ServeHTTP implements the http.Handler interface for the DiscoverHandler type
-func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func DiscoverHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		fc         *geojson.FeatureCollection
 		err        error
@@ -89,7 +60,6 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		return
 	}
 
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 	if context.PlanetKey == "" {
 		util.LogSimpleErr(&context, noPlanetKey, nil)
@@ -116,8 +86,6 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		itemType = "REOrthoTile"
 	case "PSOrthoTile", "planetscope":
 		itemType = "PSOrthoTile"
-	case "Landsat8L1G", "landsat":
-		itemType = "Landsat8L1G"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -176,35 +144,7 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
 // @Router /planet/{itemType}/{id} [get]
-type MetadataHandler struct {
-	Config util.Configuration
-}
-
-// NewMetadataHandler creates a new handler using configuration
-// from environment variables
-func NewMetadataHandler() MetadataHandler {
-	planetBaseURL := os.Getenv("PL_API_URL")
-	if planetBaseURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = "http://api.planet.com"
-	}
-
-	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-
-	return MetadataHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
-		},
-	}
-}
-
-// ServeHTTP implements the http.Handler interface for the MetadataHandler type
-func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func MetadataHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err     error
 		context Context
@@ -227,8 +167,6 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
-
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
@@ -245,8 +183,6 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "REOrthoTile"
 	case "PSOrthoTile", "planetscope":
 		options.ItemType = "PSOrthoTile"
-	case "Landsat8L1G", "landsat":
-		options.ItemType = "Landsat8L1G"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -299,35 +235,7 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 // @Success 200 {object}  geojson.Feature
 // @Failure 400 {object}  string
 // @Router /planet/activate/{itemType}/{id} [post]
-type ActivateHandler struct {
-	Config util.Configuration
-}
-
-// NewActivateHandler creates a new handler using configuration
-// from environment variables
-func NewActivateHandler() ActivateHandler {
-	planetBaseURL := os.Getenv("PL_API_URL")
-	if planetBaseURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		planetBaseURL = "http://api.planet.com"
-	}
-
-	tidesURL := os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-
-	return ActivateHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
-		},
-	}
-}
-
-// ServeHTTP implements the http.Handler interface for the ActivateHandler type
-func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
+func ActivateHandler(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err      error
 		context  Context
@@ -347,8 +255,6 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
-
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
 	context.PlanetKey = request.FormValue("PL_API_KEY")
 
 	if context.PlanetKey == "" {
@@ -366,8 +272,6 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "PSOrthoTile"
 	case "PSScene4Band":
 		// No op
-	case "landsat":
-		options.ItemType = "Landsat8L1G"
 	default:
 		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
 		util.LogSimpleErr(&context, message, nil)
