@@ -24,6 +24,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/venicegeo/bf-ia-broker/tides"
@@ -31,20 +32,21 @@ import (
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-var baseURLString string
+var disablePermissionsCheck bool
 
 func init() {
-	baseURLString = os.Getenv("PL_API_URL")
-	if baseURLString == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Planet Labs API URL from the environment. Using default.")
-		baseURLString = "https://api.planet.com/"
+	disablePermissionsCheck, _ = strconv.ParseBool(os.Getenv("PL_DISABLE_PERMISSIONS_CHECK"))
+	if disablePermissionsCheck {
+		util.LogInfo(&util.BasicLogContext{}, "Disabling Planet Labs permissions check")
 	}
 }
 
 // Context is the context for a Planet Labs Operation
 type Context struct {
-	PlanetKey string
-	sessionID string
+	BasePlanetURL string
+	BaseTidesURL  string
+	PlanetKey     string
+	sessionID     string
 }
 
 // AppName returns an empty string
@@ -207,8 +209,8 @@ func GetScenes(options SearchOptions, context *Context) (*geojson.FeatureCollect
 		return nil, err
 	}
 	if options.Tides {
-		var context tides.Context
-		if fc, err = tides.GetTides(fc, &context); err != nil {
+		tidesContext := tides.Context{TidesURL: context.BaseTidesURL}
+		if fc, err = tides.GetTides(fc, &tidesContext); err != nil {
 			return nil, err
 		}
 	}
@@ -225,7 +227,7 @@ func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 		body     []byte
 		assets   Assets
 	)
-	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
+	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets"
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
 		return result, err
 	}
@@ -296,6 +298,7 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 		var (
 			tc tides.Context
 		)
+		tc.TidesURL = context.BaseTidesURL
 		fc := geojson.NewFeatureCollection([]*geojson.Feature{&feature})
 		if fc, err = tides.GetTides(fc, &tc); err != nil {
 			return nil, err
@@ -327,8 +330,8 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err       error
 	)
 	inputURL = input.inputURL
-	if !strings.Contains(inputURL, baseURLString) {
-		baseURL, _ := url.Parse(baseURLString)
+	if !strings.Contains(inputURL, context.BasePlanetURL) {
+		baseURL, _ := url.Parse(context.BasePlanetURL)
 		parsedRelativeURL, _ := url.Parse(input.inputURL)
 		resolvedURL := baseURL.ResolveReference(parsedRelativeURL)
 
@@ -343,12 +346,12 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
 		return nil, err
 	}
-	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	if input.contentType != "" {
 		request.Header.Set("Content-Type", input.contentType)
 	}
 
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
+	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	return util.HTTPClient().Do(request)
 }
 
@@ -388,7 +391,7 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 	for inx, curr := range fc.Features {
 
 		// We need to suppress scenes that we don't have permissions for
-		if scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
+		if disablePermissionsCheck || scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
 			features = append(features, transformSRFeature(curr))
 			// } else {
 			// 	util.LogInfo(context, fmt.Sprintf("Skipping scene %v due to lack of permissions.", curr.IDStr()))

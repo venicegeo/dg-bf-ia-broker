@@ -15,7 +15,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -26,7 +25,6 @@ import (
 )
 
 func serve() {
-
 	portStr := ":8080"
 	router := mux.NewRouter()
 
@@ -34,12 +32,11 @@ func serve() {
 
 	router.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
 		util.LogAudit(context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving / request", Severity: util.INFO})
-		fmt.Fprintf(writer, "Hi")
 		util.LogAudit(context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending / response", Severity: util.INFO})
 	})
-	router.HandleFunc("/planet/discover/{itemType}", planet.DiscoverHandler)
-	router.HandleFunc("/planet/{itemType}/{id}", planet.MetadataHandler)
-	router.HandleFunc("/planet/activate/{itemType}/{id}", planet.ActivateHandler)
+	router.Handle("/planet/discover/{itemType}", planet.NewDiscoverHandler())
+	router.Handle("/planet/{itemType}/{id}", planet.NewMetadataHandler())
+	router.Handle("/planet/activate/{itemType}/{id}", planet.NewActivateHandler())
 	// 	case "/help":
 	// 		fmt.Fprintf(writer, "We're sorry, help is not yet implemented.\n")
 	// 	default:

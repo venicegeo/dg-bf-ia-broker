@@ -1,0 +1,55 @@
+{
+  "acquiredDate": "2006-01-02T15:04:05Z",
+  "bbox": [
+    100.0,
+    0.0,
+    105.0,
+    1.0
+  ],
+  "features": [
+    {
+      "_permissions": [
+        "assets.analytic:download"
+      ],
+      "bbox": [
+        100.0,
+        0.0,
+        105.0,
+        1.0
+      ],
+      "geometry": {
+        "coordinates": [
+          [
+            [
+              -10.0,
+              -10.0
+            ],
+            [
+              10.0,
+              -10.0
+            ],
+            [
+              10.0,
+              10.0
+            ],
+            [
+              -10.0,
+              10.0
+            ]
+          ]
+        ],
+        "type": "Polygon"
+      },
+      "id": "foobar123",
+      "properties": {
+        "acquired": "2006-01-02T15:04:05Z",
+        "cloud_cover": 0.5,
+        "currentTide": 1.0,
+        "gsd": 6.5,
+        "satellite_id": "RapidEye-1"
+      },
+      "type": "Polygon"
+    }
+  ],
+  "type": "FeatureCollection"
+}

@@ -16,26 +16,15 @@ package tides
 
 import (
 	"fmt"
-	"math"
-	"os"
 	"time"
 
 	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-var tidesURL string
-
-func init() {
-	tidesURL = os.Getenv("BF_TIDE_PREDICTION_URL")
-	if tidesURL == "" {
-		util.LogAlert(&util.BasicLogContext{}, "Didn't get Tide Prediction URL from the environment. Using default.")
-		tidesURL = "https://bf-tideprediction.int.geointservices.io/tides"
-	}
-}
-
 // Context is the context for this operation
 type Context struct {
+	TidesURL  string
 	sessionID string
 }
 
@@ -64,8 +53,7 @@ type tideIn struct {
 }
 
 type tidesIn struct {
-	Locations []tideIn                    `json:"locations"`
-	Map       map[string]*geojson.Feature `json:"-"`
+	Locations []tideIn `json:"locations"`
 }
 
 type tideOut struct {
@@ -100,62 +88,55 @@ func toTideIn(bbox geojson.BoundingBox, timeStr string) *tideIn {
 	return &tideIn{Lat: center.Coordinates[1], Lon: center.Coordinates[0], Dtg: dtgTime.Format("2006-01-02-15-04")}
 }
 
-func toTidesIn(features []*geojson.Feature, context util.LogContext) *tidesIn {
-	var (
-		result     tidesIn
-		currTideIn *tideIn
-	)
-	result.Map = make(map[string]*geojson.Feature)
+func toTidesIn(features []*geojson.Feature, context util.LogContext) (result tidesIn, dtgFeatureMap map[string]*geojson.Feature) {
+	dtgFeatureMap = make(map[string]*geojson.Feature)
 	for _, feature := range features {
-		if feature.PropertyFloat("CurrentTide") != math.NaN() {
-			if currTideIn = toTideIn(feature.ForceBbox(), feature.PropertyString("acquiredDate")); currTideIn == nil {
-				util.LogInfo(context, fmt.Sprintf("Could not get tide information from feature %v because required elements did not exist. BBOX: %#v, Date: %v",
-					feature.IDStr(),
-					feature.ForceBbox(),
-					feature.PropertyString("acquiredDate")))
-				continue
-			}
-			result.Locations = append(result.Locations, *currTideIn)
-			result.Map[currTideIn.Dtg] = feature
+		currTideIn := toTideIn(feature.ForceBbox(), feature.PropertyString("acquiredDate"))
+		if currTideIn == nil {
+			util.LogInfo(context, fmt.Sprintf("Could not get tide information from feature %v because required elements did not exist. BBOX: %#v, Date: %v",
+				feature.IDStr(),
+				feature.ForceBbox(),
+				feature.PropertyString("acquiredDate")))
+			continue
 		}
+		result.Locations = append(result.Locations, *currTideIn)
+		dtgFeatureMap[currTideIn.Dtg] = feature
 	}
-	switch len(result.Locations) {
-	case 0:
-		return nil
-	default:
-		return &result
-	}
+	return
 }
 
 // GetTides returns the tide information for the features provided.
 // Features must have a geometry and an acquiredDate property.
 func GetTides(fc *geojson.FeatureCollection, context *Context) (*geojson.FeatureCollection, error) {
 	var (
-		err          error
-		tin          *tidesIn
-		tout         out
-		currentScene *geojson.Feature
-		result       *geojson.FeatureCollection
-		ok           bool
+		err    error
+		tout   out
+		result *geojson.FeatureCollection
 	)
-	tin = toTidesIn(fc.Features, context)
-	features := make([]*geojson.Feature, len(fc.Features))
+	tidesURL := context.TidesURL
+	tin, dtgFeatureMap := toTidesIn(fc.Features, context)
+
 	util.LogAudit(context, util.LogAuditInput{Actor: "anon user", Action: "POST", Actee: tidesURL, Message: "Requesting tide information", Severity: util.INFO})
-	if _, err = util.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err == nil {
-		util.LogAudit(context, util.LogAuditInput{Actor: tidesURL, Action: "POST response", Actee: "anon user", Message: "Retrieving tide information", Severity: util.INFO})
-		for inx, tideObj := range tout.Locations {
-			if currentScene, ok = tin.Map[tideObj.Dtg]; !ok {
-				util.LogInfo(context, "Failed to find location for "+tideObj.Dtg)
-				continue
-			}
-			currentScene.Properties["CurrentTide"] = tideObj.Results.CurrTide
-			currentScene.Properties["MinimumTide24Hours"] = tideObj.Results.MinTide
-			currentScene.Properties["MaximumTide24Hours"] = tideObj.Results.MaxTide
-			features[inx] = currentScene
-		}
-		result = geojson.NewFeatureCollection(features)
-	} else {
-		err = util.LogSimpleErr(context, "Failed to retrieve tides. ", err)
+	if _, err = util.ReqByObjJSON("POST", tidesURL, "", tin, &tout); err != nil {
+		return nil, err
 	}
+	util.LogAudit(context, util.LogAuditInput{Actor: tidesURL, Action: "POST response", Actee: "anon user", Message: "Retrieving tide information", Severity: util.INFO})
+
+	tideFeatures := []*geojson.Feature{}
+	for _, outputLocation := range tout.Locations {
+		if _, ok := dtgFeatureMap[outputLocation.Dtg]; !ok {
+			util.LogInfo(context, "Failed to find location for output dtg "+outputLocation.Dtg)
+			continue
+		}
+		oldFeaturePtr, _ := dtgFeatureMap[outputLocation.Dtg]
+		newFeature := *oldFeaturePtr
+		newFeature.Properties["CurrentTide"] = outputLocation.Results.CurrTide
+		newFeature.Properties["MinimumTide24Hours"] = outputLocation.Results.MinTide
+		newFeature.Properties["MaximumTide24Hours"] = outputLocation.Results.MaxTide
+		tideFeatures = append(tideFeatures, &newFeature)
+	}
+
+	result = geojson.NewFeatureCollection(tideFeatures)
+
 	return result, err
 }
