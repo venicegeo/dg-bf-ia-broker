@@ -15,126 +15,101 @@
 package planet
 
 import (
-	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
-	"github.com/gorilla/mux"
-	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/venicegeo/geojson-go/geojson"
 )
 
-const fakeDiscoverURL = "foo://bar/planet/discover/rapideye?PL_API_KEY=%v"
-const fakeMetadataURL = "foo://bar/planet/rapideye/%v?PL_API_KEY=%v"
-const fakeActivateURL = "foo://bar/planet/activate/rapideye/%v?PL_API_KEY=%v"
+func TestMain(m *testing.M) {
+	initSampleTestingFiles()
+	os.Exit(m.Run())
+}
 
-func TestHandlers(t *testing.T) {
-	var (
-		err     error
-		request *http.Request
-		fci     interface{}
+func TestDiscoverHandlerNoAPIKey(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeDiscoverTestingURL(mockServer.URL, "")
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.NotEqual(t, http.StatusOK, recorder.Code,
+		"Expected request to fail due to lack of API Key but received: %v, %v", recorder.Code, recorder.Body.String(),
+	)
+}
+
+func TestDiscoverHandlerInvalidAPIKey(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeDiscoverTestingURL(mockServer.URL, testingInvalidKey)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code,
+		"Expected request to fail due to unauthorized API Key but received: %v, %v", recorder.Code, recorder.Body.String(),
+	)
+}
+
+func TestDiscoverHandlerSuccess(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeDiscoverTestingURL(mockServer.URL, testingValidKey)
+	recorder := httptest.NewRecorder()
+
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Expected request to succeed but received: %v, %v", recorder.Code, recorder.Body.String(),
 	)
 
-	router := mux.NewRouter()
-	router.HandleFunc("/planet/discover/{itemType}", DiscoverHandler)
-	router.HandleFunc("/planet/activate/{itemType}/{id}", ActivateHandler)
-	router.HandleFunc("/planet/{itemType}/{id}", MetadataHandler)
+	_, err := geojson.Parse(recorder.Body.Bytes())
+	assert.Nil(t, err, "Expected to parse GeoJSON but received: %v", err)
+}
 
-	// Test: No API Key
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, ""), nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ := util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode == http.StatusOK {
-		t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
+func TestMetadataHandlerSuccess(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", testingValidItemID)
+	recorder := httptest.NewRecorder()
 
-	// Test: Invalid API Key
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, "foo"), nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode != http.StatusUnauthorized {
-		t.Errorf("Expected request to fail due to unauthorized API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Expected request to succeed but received: %v, %v", recorder.Code, recorder.Body.String(),
+	)
+}
 
-	// Test: Discover (Happy)
-	if request, err = http.NewRequest("GET", fmt.Sprintf(fakeDiscoverURL, os.Getenv("PL_API_KEY")), nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
+func TestMetadataHandlerImageIDNotFound(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeMetadataTestingURL(mockServer.URL, testingValidKey, "rapideye", "")
+	recorder := httptest.NewRecorder()
 
-	if writer.StatusCode != http.StatusOK {
-		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
+	router.ServeHTTP(recorder, httptest.NewRequest("GET", url, nil))
+	assert.Equal(t, http.StatusNotFound, recorder.Code,
+		"Expected request to return a 404 but it returned a %v.", recorder.Code,
+	)
+}
 
-	if fci, err = geojson.Parse([]byte(writer.OutputString)); err != nil {
-		t.Fatalf("Expected to parse GeoJSON but received: %v", err.Error())
-	}
-	id := fci.(*geojson.FeatureCollection).Features[0].IDStr()
+func TestActivateHandlerInvalidKey(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeActivateTestingURL(mockServer.URL, testingInvalidKey, testingValidItemType, testingValidItemID)
+	recorder := httptest.NewRecorder()
 
-	// Test: Activate, no Image ID
-	// We can't currently run activate tests because some images we receive are not activatable
-	// if request, err = http.NewRequest("GET", fmt.Sprintf(fakeAssetURL, "", ""), nil); err != nil {
-	// 	t.Error(err.Error())
-	// }
-	// writer, _, _ = util.GetMockResponseWriter()
+	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
+	assert.Equal(t, http.StatusUnauthorized, recorder.Code,
+		"Expected request to return a 401 but it returned a %v.", recorder.Code,
+	)
+}
 
-	// // Test: Activate, no API Key
-	// if request, err = http.NewRequest("POST", fmt.Sprintf(fakeAssetURL, id, ""), nil); err != nil {
-	// 	t.Error(err.Error())
-	// }
-	// writer, _, _ = util.GetMockResponseWriter()
-	// router.ServeHTTP(writer, request)
-	// if writer.StatusCode == http.StatusOK {
-	// 	t.Errorf("Expected request to fail due to lack of API Key but received: %v, %v", writer.StatusCode, writer.OutputString)
-	// }
-	//
-	// Test: Metadata (happy)
-	metadataURL := fmt.Sprintf(fakeMetadataURL, id, os.Getenv("PL_API_KEY"))
+func TestActivateHandlerSuccess(t *testing.T) {
+	mockServer, _, router := createTestFixtures()
+	url := makeActivateTestingURL(mockServer.URL, testingValidKey, testingValidItemType, testingValidItemID)
+	recorder := httptest.NewRecorder()
 
-	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode != http.StatusOK {
-		t.Errorf("Expected request to succeed but received: %v, %v", writer.StatusCode, writer.OutputString)
-	}
+	router.ServeHTTP(recorder, httptest.NewRequest("POST", url, nil))
+	assert.Equal(t, http.StatusOK, recorder.Code,
+		"Unexpected error in response to request. %v %v", recorder.Code, recorder.Body.String(),
+	)
 
-	// Test: Metadata (no image ID)
-	metadataURL = fmt.Sprintf(fakeMetadataURL, "", os.Getenv("PL_API_KEY"))
-
-	if request, err = http.NewRequest("GET", metadataURL, nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode != http.StatusNotFound {
-		t.Errorf("Expected request to return a 404 but it returned a %v.", writer.StatusCode)
-	}
-
-	// Test: Activate (invalid PL key)
-	activateURL := fmt.Sprintf(fakeActivateURL, id, "foo")
-	if request, err = http.NewRequest("POST", activateURL, nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	router.ServeHTTP(writer, request)
-	if writer.StatusCode != http.StatusUnauthorized {
-		t.Errorf("Expected request to return a 401 but it returned a %v.", writer.StatusCode)
-	}
-
-	// Test: Activate (happy)
-	activateURL = fmt.Sprintf(fakeActivateURL, id, os.Getenv("PL_API_KEY"))
-	if request, err = http.NewRequest("POST", activateURL, nil); err != nil {
-		t.Error(err.Error())
-	}
-	writer, _, _ = util.GetMockResponseWriter()
-	// Since this request will routinely fail, we do not check its status
-	router.ServeHTTP(writer, request)
+	assert.Equal(t, testingSampleActivateResult, recorder.Body.String(),
+		"Unexpected result for asset activation query",
+	)
 }
