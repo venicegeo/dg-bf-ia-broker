@@ -45,7 +45,7 @@ const invalidCloudCover = "Cloud Cover value of %v is invalid."
 // @Failure 400 {object}  string
 // @Router /planet/discover/{itemType} [get]
 type DiscoverHandler struct {
-	Config util.Configuration
+	Context Context
 }
 
 // NewDiscoverHandler creates a new handler using configuration
@@ -64,9 +64,9 @@ func NewDiscoverHandler() DiscoverHandler {
 	}
 
 	return DiscoverHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
+		Context: Context{
+			BasePlanetURL: planetBaseURL,
+			BaseTidesURL:  tidesURL,
 		},
 	}
 }
@@ -81,19 +81,17 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		bbox       geojson.BoundingBox
 		ccStr      string
 		cloudCover float64
-		context    Context
 	)
-	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /discover request", Severity: util.INFO})
+	util.LogAudit(&h.Context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /discover request", Severity: util.INFO})
 
-	if util.Preflight(writer, request, &context) {
+	if util.Preflight(writer, request, &h.Context) {
 		return
 	}
 
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
-	context.PlanetKey = request.FormValue("PL_API_KEY")
-	if context.PlanetKey == "" {
-		util.LogSimpleErr(&context, noPlanetKey, nil)
-		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
+	h.Context.PlanetKey = request.FormValue("PL_API_KEY")
+	if h.Context.PlanetKey == "" {
+		util.LogSimpleErr(&h.Context, noPlanetKey, nil)
+		util.HTTPError(request, writer, &h.Context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -103,8 +101,8 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	if ccStr != "" {
 		if cloudCover, err = strconv.ParseFloat(ccStr, 64); err != nil {
 			message := fmt.Sprintf(invalidCloudCover, ccStr)
-			util.LogSimpleErr(&context, message, err)
-			util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+			util.LogSimpleErr(&h.Context, message, err)
+			util.HTTPError(request, writer, &h.Context, message, http.StatusBadRequest)
 			return
 		}
 		cloudCover = cloudCover / 100.0
@@ -122,8 +120,8 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		// No op
 	default:
 		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
-		util.LogSimpleErr(&context, message, nil)
-		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+		util.LogSimpleErr(&h.Context, message, nil)
+		util.HTTPError(request, writer, &h.Context, message, http.StatusBadRequest)
 		return
 	}
 
@@ -131,8 +129,8 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 	if bboxString != "" {
 		if bbox, err = geojson.NewBoundingBox(bboxString); err != nil {
 			message := fmt.Sprintf("The bbox value of %v is invalid", bboxString)
-			util.LogSimpleErr(&context, message, err)
-			util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+			util.LogSimpleErr(&h.Context, message, err)
+			util.HTTPError(request, writer, &h.Context, message, http.StatusBadRequest)
 			return
 		}
 	}
@@ -145,22 +143,22 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		Tides:           tides,
 		Bbox:            bbox}
 
-	if fc, err = GetScenes(options, &context); err == nil {
+	if fc, err = GetScenes(options, &h.Context); err == nil {
 		if bytes, err = geojson.Write(fc); err != nil {
-			err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", fc), err)
-			util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
+			err = util.LogSimpleErr(&h.Context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", fc), err)
+			util.HTTPError(request, writer, &h.Context, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writer.Header().Set("Content-Type", "application/json")
 		writer.Write(bytes)
-		util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method + " response", Actee: request.URL.String(), Message: "Sending /discover response", Severity: util.INFO})
+		util.LogAudit(&h.Context, util.LogAuditInput{Actor: "anon user", Action: request.Method + " response", Actee: request.URL.String(), Message: "Sending /discover response", Severity: util.INFO})
 	} else {
 		switch herr := err.(type) {
 		case util.HTTPErr:
-			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+			util.HTTPError(request, writer, &h.Context, herr.Message, herr.Status)
 		default:
-			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scenes. ", err)
-			util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
+			err = util.LogSimpleErr(&h.Context, "Failed to get Planet Labs scenes. ", err)
+			util.HTTPError(request, writer, &h.Context, err.Error(), http.StatusInternalServerError)
 		}
 	}
 }
@@ -177,7 +175,7 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 // @Failure 400 {object}  string
 // @Router /planet/{itemType}/{id} [get]
 type MetadataHandler struct {
-	Config util.Configuration
+	Context Context
 }
 
 // NewMetadataHandler creates a new handler using configuration
@@ -196,9 +194,9 @@ func NewMetadataHandler() MetadataHandler {
 	}
 
 	return MetadataHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
+		Context: Context{
+			BasePlanetURL: planetBaseURL,
+			BaseTidesURL:  tidesURL,
 		},
 	}
 }
@@ -207,33 +205,31 @@ func NewMetadataHandler() MetadataHandler {
 func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err     error
-		context Context
 		feature *geojson.Feature
 		bytes   []byte
 		options MetadataOptions
 		asset   Asset
 	)
 
-	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/{itemType}/{id} request", Severity: util.INFO})
+	util.LogAudit(&h.Context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/{itemType}/{id} request", Severity: util.INFO})
 
-	if util.Preflight(writer, request, &context) {
+	if util.Preflight(writer, request, &h.Context) {
 		return
 	}
 	vars := mux.Vars(request)
 	options.ID = vars["id"]
 	if options.ID == "" {
 
-		util.LogSimpleErr(&context, noPlanetImageID, nil)
-		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
+		util.LogSimpleErr(&h.Context, noPlanetImageID, nil)
+		util.HTTPError(request, writer, &h.Context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
 
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
-	context.PlanetKey = request.FormValue("PL_API_KEY")
+	h.Context.PlanetKey = request.FormValue("PL_API_KEY")
 
-	if context.PlanetKey == "" {
-		util.LogAlert(&context, noPlanetKey)
-		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
+	if h.Context.PlanetKey == "" {
+		util.LogAlert(&h.Context, noPlanetKey)
+		util.HTTPError(request, writer, &h.Context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -251,40 +247,39 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		// No op
 	default:
 		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
-		util.LogSimpleErr(&context, message, nil)
-		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+		util.LogSimpleErr(&h.Context, message, nil)
+		util.HTTPError(request, writer, &h.Context, message, http.StatusBadRequest)
 		return
 	}
 
-	if feature, err = GetMetadata(options, &context); err == nil {
-		if asset, err = GetAsset(options, &context); err == nil {
+	if feature, err = GetMetadata(options, &h.Context); err == nil {
+		if asset, err = GetAsset(options, &h.Context); err == nil {
 			injectAssetIntoMetadata(feature, asset)
 			if bytes, err = geojson.Write(feature); err != nil {
-				err = util.LogSimpleErr(&context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", feature), err)
-				util.HTTPError(request, writer, &context, err.Error(), http.StatusInternalServerError)
+				err = util.LogSimpleErr(&h.Context, fmt.Sprintf("Failed to write output GeoJSON from:\n%#v", feature), err)
+				util.HTTPError(request, writer, &h.Context, err.Error(), http.StatusInternalServerError)
 				return
 			}
 			writer.Header().Set("Content-Type", "application/json")
 			writer.Write(bytes)
 
-			util.LogInfo(&context, "Asset: "+string(bytes))
-			util.LogAudit(&context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response" + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
+			util.LogAudit(&h.Context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response" + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
 		} else {
 			switch herr := err.(type) {
 			case util.HTTPErr:
-				util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+				util.HTTPError(request, writer, &h.Context, herr.Message, herr.Status)
 			default:
-				err = util.LogSimpleErr(&context, "Failed to get Planet Labs asset information. ", err)
-				util.HTTPError(request, writer, &context, err.Error(), 0)
+				err = util.LogSimpleErr(&h.Context, "Failed to get Planet Labs asset information. ", err)
+				util.HTTPError(request, writer, &h.Context, err.Error(), 0)
 			}
 		}
 	} else {
 		switch herr := err.(type) {
 		case util.HTTPErr:
-			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+			util.HTTPError(request, writer, &h.Context, herr.Message, herr.Status)
 		default:
-			err = util.LogSimpleErr(&context, "Failed to get Planet Labs scene metadata. ", err)
-			util.HTTPError(request, writer, &context, err.Error(), 0)
+			err = util.LogSimpleErr(&h.Context, "Failed to get Planet Labs scene metadata. ", err)
+			util.HTTPError(request, writer, &h.Context, err.Error(), 0)
 		}
 	}
 }
@@ -300,7 +295,7 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 // @Failure 400 {object}  string
 // @Router /planet/activate/{itemType}/{id} [post]
 type ActivateHandler struct {
-	Config util.Configuration
+	Context Context
 }
 
 // NewActivateHandler creates a new handler using configuration
@@ -319,9 +314,9 @@ func NewActivateHandler() ActivateHandler {
 	}
 
 	return ActivateHandler{
-		Config: util.Configuration{
-			BasePlanetAPIURL: planetBaseURL,
-			TidesAPIURL:      tidesURL,
+		Context: Context{
+			BasePlanetURL: planetBaseURL,
+			BaseTidesURL:  tidesURL,
 		},
 	}
 }
@@ -330,31 +325,29 @@ func NewActivateHandler() ActivateHandler {
 func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
 	var (
 		err      error
-		context  Context
 		options  MetadataOptions
 		response *http.Response
 	)
 
-	util.LogAudit(&context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/activate/{itemType}/{id} request", Severity: util.INFO})
+	util.LogAudit(&h.Context, util.LogAuditInput{Actor: "anon user", Action: request.Method, Actee: request.URL.String(), Message: "Receiving /planet/activate/{itemType}/{id} request", Severity: util.INFO})
 
-	if util.Preflight(writer, request, &context) {
+	if util.Preflight(writer, request, &h.Context) {
 		return
 	}
 	vars := mux.Vars(request)
 	options.ID = vars["id"]
 	if options.ID == "" {
-		util.LogSimpleErr(&context, noPlanetImageID, nil)
-		util.HTTPError(request, writer, &context, noPlanetImageID, http.StatusBadRequest)
+		util.LogSimpleErr(&h.Context, noPlanetImageID, nil)
+		util.HTTPError(request, writer, &h.Context, noPlanetImageID, http.StatusBadRequest)
 		return
 	}
 
-	context.BasePlanetURL = h.Config.BasePlanetAPIURL
-	context.PlanetKey = request.FormValue("PL_API_KEY")
+	h.Context.PlanetKey = request.FormValue("PL_API_KEY")
 
-	if context.PlanetKey == "" {
+	if h.Context.PlanetKey == "" {
 
-		util.LogAlert(&context, noPlanetKey)
-		util.HTTPError(request, writer, &context, noPlanetKey, http.StatusBadRequest)
+		util.LogAlert(&h.Context, noPlanetKey)
+		util.HTTPError(request, writer, &h.Context, noPlanetKey, http.StatusBadRequest)
 		return
 	}
 
@@ -370,30 +363,30 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "Landsat8L1G"
 	default:
 		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
-		util.LogSimpleErr(&context, message, nil)
-		util.HTTPError(request, writer, &context, message, http.StatusBadRequest)
+		util.LogSimpleErr(&h.Context, message, nil)
+		util.HTTPError(request, writer, &h.Context, message, http.StatusBadRequest)
 		return
 	}
 
-	if response, err = Activate(options, &context); err == nil {
+	if response, err = Activate(options, &h.Context); err == nil {
 		defer response.Body.Close()
 		writer.Header().Set("Content-Type", response.Header.Get("Content-Type"))
 		if (response.StatusCode >= 200) && (response.StatusCode < 300) {
 			bytes, _ := ioutil.ReadAll(response.Body)
 			writer.Write(bytes)
-			util.LogAudit(&context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
+			util.LogAudit(&h.Context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
 		} else {
 			message := fmt.Sprintf("Failed to activate Planet Labs scene: " + response.Status)
-			err = util.LogSimpleErr(&context, message, nil)
-			util.HTTPError(request, writer, &context, err.Error(), response.StatusCode)
+			err = util.LogSimpleErr(&h.Context, message, nil)
+			util.HTTPError(request, writer, &h.Context, err.Error(), response.StatusCode)
 		}
 	} else {
 		switch herr := err.(type) {
 		case util.HTTPErr:
-			util.HTTPError(request, writer, &context, herr.Message, herr.Status)
+			util.HTTPError(request, writer, &h.Context, herr.Message, herr.Status)
 		default:
-			err = util.LogSimpleErr(&context, "Failed to activate Planet Labs scene. ", err)
-			util.HTTPError(request, writer, &context, err.Error(), 0)
+			err = util.LogSimpleErr(&h.Context, "Failed to activate Planet Labs scene. ", err)
+			util.HTTPError(request, writer, &h.Context, err.Error(), 0)
 		}
 	}
 }
