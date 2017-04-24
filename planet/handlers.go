@@ -263,7 +263,7 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 			writer.Header().Set("Content-Type", "application/json")
 			writer.Write(bytes)
 
-			util.LogAudit(&h.Context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response" + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
+			util.LogAudit(&h.Context, util.LogAuditInput{Actor: request.URL.String(), Action: request.Method + " response", Actee: "anon user", Message: "Sending planet/{itemType}/{id} response", Severity: util.INFO})
 		} else {
 			switch herr := err.(type) {
 			case util.HTTPErr:
