@@ -227,7 +227,7 @@ func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 		body     []byte
 		assets   Assets
 	)
-	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets"
+	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
 		return result, err
 	}

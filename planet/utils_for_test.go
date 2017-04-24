@@ -123,7 +123,7 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 		writer.Write([]byte(testingSampleFeatureResult))
 	})
 
-	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets", func(writer http.ResponseWriter, request *http.Request) {
+	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets/", func(writer http.ResponseWriter, request *http.Request) {
 		request.Header.Write(os.Stdout)
 		if !testingCheckAuthorization(request.Header.Get("Authorization")) {
 			writer.WriteHeader(401)
