@@ -341,7 +341,11 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 		}
 		inputURL = parsedURL.String()
 	}
-	util.LogAudit(context, util.LogAuditInput{Actor: "planet/doRequest", Action: input.method, Actee: inputURL, Message: "Requesting data from Planet Labs", Severity: util.INFO})
+	message := "Requesting data from Planet Labs"
+	bodyStr := string(input.body)
+	if bodyStr != "" {
+		message += ": " + bodyStr
+	}
 	if request, err = http.NewRequest(input.method, inputURL, bytes.NewBuffer(input.body)); err != nil {
 		err = util.LogSimpleErr(context, fmt.Sprintf("Failed to make a new HTTP request for %v.", inputURL), err)
 		return nil, err
@@ -351,6 +355,8 @@ func doRequest(input doRequestInput, context *Context) (*http.Response, error) {
 	}
 
 	request.Header.Set("Authorization", "Basic "+base64.StdEncoding.EncodeToString([]byte(context.PlanetKey+":")))
+	message = fmt.Sprintf("%v\nHeader:\n%#v", message, request.Header)
+	util.LogAudit(context, util.LogAuditInput{Actor: "planet/doRequest", Action: input.method, Actee: inputURL, Message: message, Severity: util.INFO})
 	util.LogAudit(context, util.LogAuditInput{Actor: inputURL, Action: input.method + " response", Actee: "planet/doRequest", Message: "Receiving data from Planet Labs", Severity: util.INFO})
 	return util.HTTPClient().Do(request)
 }
