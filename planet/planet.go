@@ -227,6 +227,7 @@ func GetAsset(options MetadataOptions, context *Context) (Asset, error) {
 		body     []byte
 		assets   Assets
 	)
+	// Note: trailing `/` is needed here to avoid a redirect which causes a Go 1.7 redirect bug issue
 	inputURL := "data/v1/item-types/" + options.ItemType + "/items/" + options.ID + "/assets/"
 	if response, err = doRequest(doRequestInput{method: "GET", inputURL: inputURL}, context); err != nil {
 		return result, err
