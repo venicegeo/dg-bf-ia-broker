@@ -1,13 +1,55 @@
 # bf-ia-broker
 A broker for image archives in support of Beachfront. This component generally stands between a UI (e.g., bf-ui) and one or more imagery providers (e.g., Planet Labs).
 
-### Building
-This component is built in Go. To build it, clone the repository in your Go source directory and issue the following command:
-```
-go install
-```
+## Development setup
 
-### Environment Variables
+Go relies heavily on configuration by convention. These instructions will help
+you set up the `bf-ia-broker` repository in a way that best adheres to convention
+in order to simplify development.
+
+### 1. Install Go
+
+`bf-ia-broker` is built on **Go 1.8.x**. You can download it here:
+https://golang.org/dl/. Make sure the `go` tool is on your path once the install
+is done.
+
+### 2. Set up Go environment variables
+
+To function right, Go must have some environment variables set. Run the `go env`
+command to list all relevant environment variables. The two most important lines
+to look for are `GOROOT` and `GOPATH`:
+
+- `GOROOT` must point to the base directory at which Go is installed
+- `GOPATH` must point to a directory that is to serve as your development
+  environment. This is where this code and dependencies will live.
+
+### 3. Clone the repository
+
+Create the directory the respository must live in, then clone the repository there:
+
+    $ mkdir -p $GOPATH/src/github.com/venicegeo
+    $ cd $GOPATH/src/github.com/venicegeo
+    $ git clone git@github.com:venicegeo/bf-ia-broker.git
+
+### 4. Install dependencies
+
+This project manages dependencies by populating a `vendor/` directory using the
+[Glide](https://glide.sh) tool. Install it as detailed at its website. Then, in
+the code repository, run:
+
+    $ glide install
+
+This will retrieve all the relevant dependencies at their appropriate versions
+and place them in `vendor/`, which enables Go to use those versions in building
+rather than the default (which is the newest revision in Github).
+
+> **Adding new dependencies.** When adding new dependencies, simply installing
+  them with `go get <package>` will fetch their latest version and place it in
+  `$GOPATH/src`. This is undesirable, since it is not repeatable for others.
+  Instead, to add a dependency, use `glide get <package>`, which will place it
+  in `vendor/` and update `glide.yaml` and `glide.lock` to remember its version.
+
+### 5. Set up Beachfront environment variables
 
 |Variable|Description|Default|
 |---------|-----------|------|
@@ -15,12 +57,38 @@ go install
 |PL_API_URL|Location of Planet Labs API|https://api.planet.com/ |
 |PL_API_KEY|Planet Labs API Key|N/A|
 
-### Running
-To run as a web server, use the following command:
-```
-bf-ia-broker serve
-```
-Additional command line options may be available at a later time.
+## Building, running, and testing
+
+### Build the project
+
+To build `bf-ia-broker`, run `go install` from the project directory. To build
+it from elsewhere, run:
+
+    $ go install github.com/venicegeo/bf-ia-broker
+
+This will build and place a statically-linked Go executable at
+`$GOPATH/bin/bf-ia-broker`.
+
+### Run the project
+
+To launch `bf-ia-broker` use:
+
+    $ $GOPATH/bin/bf-ia-broker serve
+
+> You can also set your `PATH` to include `$GOPATH/bin` to only have to run
+  `bf-ia-broker serve`.
+
+This starts the `bf-ia-broker` listening on all interfaces on port **8080**.
+
+### Run unit tests
+
+To run `bf-ia-broker`, run the `run-tests.sh` script in the repository. This
+will run the unit tests for `bf-ia-broker` and all its subpackages and print
+coverage summaries.
+
+> **Note:** The base `github.com/venicegeo/bf-ia-broker` package does not currently
+  have unit tests as it is just bootstrapping and setup, without much business logic.
+  It is however included in the test script for completeness.
 
 ### Using
 In [handlers.go](planet/handlers.go) there are some REST handlers.
