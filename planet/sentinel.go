@@ -33,7 +33,7 @@ func isSentinelFeature(productID string) bool {
 }
 
 func addSentinelS3BandsToProperties(sentinelID string, properties *map[string]interface{}) error {
-	if !regexp.MustCompile("S2(A|B).*").MatchString(sentinelID) {
+	if !isSentinelFeature(sentinelID) {
 		return nil // Not a Sentinel-2 product
 	}
 	if !sentinelIDPattern.MatchString(sentinelID) {
