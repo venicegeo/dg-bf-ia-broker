@@ -8,7 +8,7 @@ import (
 )
 
 // Inputs: mgrs1, mgrs2, mgrs3, year, month, day, filename
-const sentinelAWSURL = "http://sentinel-s2-l1c.s3.amazonaws.com/tiles/%s/%s/%s/%d/%d/%d/0/%s"
+const sentinelAWSURL = "https://sentinel-s2-l1c.s3.amazonaws.com/tiles/%s/%s/%s/%d/%d/%d/0/%s"
 
 // https://earth.esa.int/web/sentinel/user-guides/sentinel-2-msi/naming-convention
 // TODO: add support for old-style product IDs (which do not contain MGRS info in them)
