@@ -116,6 +116,8 @@ func (h DiscoverHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		itemType = "PSOrthoTile"
 	case "Landsat8L1G", "landsat":
 		itemType = "Landsat8L1G"
+	case "Sentinel2L1C", "sentinel":
+		itemType = "Sentinel2L1C"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -243,6 +245,8 @@ func (h MetadataHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "PSOrthoTile"
 	case "Landsat8L1G", "landsat":
 		options.ItemType = "Landsat8L1G"
+	case "Sentinel2L1C", "sentinel":
+		options.ItemType = "Sentinel2L1C"
 	case "PSScene4Band":
 		// No op
 	default:
@@ -357,10 +361,12 @@ func (h ActivateHandler) ServeHTTP(writer http.ResponseWriter, request *http.Req
 		options.ItemType = "REOrthoTile"
 	case "PSOrthoTile", "planetscope":
 		options.ItemType = "PSOrthoTile"
+	// case "Sentinel2L1C", "sentinel":			// Sentinel does not need activation
+	// 	 options.ItemType = "Sentinel2L1C"
 	case "PSScene4Band":
 		// No op
-	case "landsat":
-		options.ItemType = "Landsat8L1G"
+	// case "landsat":		                  // LandSat does not need activation
+	// 	 options.ItemType = "Landsat8L1G"
 	default:
 		message := fmt.Sprintf("The item type value of %v is invalid", itemType)
 		util.LogSimpleErr(&h.Context, message, nil)
