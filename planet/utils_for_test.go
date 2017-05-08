@@ -17,10 +17,12 @@ import (
 const testingInvalidKey = "INVALID_KEY"
 const testingValidKey = "VALID_KEY"
 const testingValidItemID = "foobar123"
+const testingValidSentinelID = "S2A_MSIL1C_20160513T183921_N0204_R070_T11SKD_20160513T185132"
 const testingValidItemType = "REOrthoTile"
 
 var testingSampleSearchResult string
 var testingSampleFeatureResult string
+var testingSampleSentinelFeatureResult string
 var testingSampleAssetsResult string
 var testingSampleActivateResult string
 
@@ -46,6 +48,10 @@ func initSampleTestingFiles() {
 	data, err = ioutil.ReadFile("testdata/testingSampleFeatureResult.json")
 	panicCheck(err)
 	testingSampleFeatureResult = string(data)
+
+	data, err = ioutil.ReadFile("testdata/testingSampleFeatureResult-Sentinel.json")
+	panicCheck(err)
+	testingSampleSentinelFeatureResult = string(data)
 
 	data, err = ioutil.ReadFile("testdata/testingSampleAssetsResult.json")
 	panicCheck(err)
@@ -113,14 +119,21 @@ func createMockPlanetAPIServer() (server *httptest.Server) {
 		itemType := mux.Vars(request)["itemType"]
 		itemID := mux.Vars(request)["itemID"]
 
-		if itemType == "" || itemID != testingValidItemID {
+		validID := itemID == testingValidItemID
+		validSentinelID := itemID == testingValidSentinelID
+
+		if itemType == "" || !(validID || validSentinelID) {
 			writer.WriteHeader(404)
 			writer.Write([]byte("Not found"))
 			return
 		}
 
 		writer.WriteHeader(200)
-		writer.Write([]byte(testingSampleFeatureResult))
+		if itemType == "Sentinel2L1C" {
+			writer.Write([]byte(testingSampleSentinelFeatureResult))
+		} else {
+			writer.Write([]byte(testingSampleFeatureResult))
+		}
 	})
 
 	router.HandleFunc("/data/v1/item-types/{itemType}/items/{itemID}/assets/", func(writer http.ResponseWriter, request *http.Request) {

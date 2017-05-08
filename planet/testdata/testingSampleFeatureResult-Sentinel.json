@@ -1,0 +1,43 @@
+{
+  "_permissions": [
+    "assets.analytic:download"
+  ],
+  "bbox": [
+    100.0,
+    0.0,
+    105.0,
+    1.0
+  ],
+  "geometry": {
+    "coordinates": [
+      [
+        [
+          -10.0,
+          -10.0
+        ],
+        [
+          10.0,
+          -10.0
+        ],
+        [
+          10.0,
+          10.0
+        ],
+        [
+          -10.0,
+          10.0
+        ]
+      ]
+    ],
+    "type": "Polygon"
+  },
+  "id": "S2A_MSIL1C_20160513T183921_N0204_R070_T11SKD_20160513T185132",
+  "properties": {
+    "acquired": "2006-01-02T15:04:05Z",
+    "cloud_cover": 0.5,
+    "currentTide": 1.0,
+    "gsd": 6.5,
+    "satellite_id": "Sentinel-2A"
+  },
+  "type": "Polygon"
+}

@@ -294,7 +294,7 @@ func GetMetadata(options MetadataOptions, context *Context) (*geojson.Feature, e
 		err = plErr.Log(context, "")
 		return nil, err
 	}
-	feature = *transformSRFeature(&feature)
+	feature = *transformSRFeature(&feature, context)
 	if options.Tides {
 		var (
 			tc tides.Context
@@ -399,7 +399,7 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 
 		// We need to suppress scenes that we don't have permissions for
 		if disablePermissionsCheck || scontains(plResults.Features[inx].Permissions, "assets.analytic:download") {
-			features = append(features, transformSRFeature(curr))
+			features = append(features, transformSRFeature(curr, context))
 			// } else {
 			// 	util.LogInfo(context, fmt.Sprintf("Skipping scene %v due to lack of permissions.", curr.IDStr()))
 		}
@@ -408,16 +408,7 @@ func transformSRBody(body []byte, context util.LogContext) (*geojson.FeatureColl
 	return result, nil
 }
 
-// To date LandSat IDs come back in the form LC80060522017107LGN00
-// but this could obviously change without notice
-func landsatIDToS3Path(id string) string {
-	if strings.HasPrefix(id, "LC8") {
-		return "https://landsat-pds.s3.amazonaws.com/L8/" + id[3:6] + "/" + id[6:9] + "/" + id + "/"
-	}
-	return ""
-}
-
-func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
+func transformSRFeature(feature *geojson.Feature, context util.LogContext) *geojson.Feature {
 	properties := make(map[string]interface{})
 	if cc, ok := feature.Properties["cloud_cover"].(float64); ok {
 		properties["cloudCover"] = cc * 100.0
@@ -430,22 +421,22 @@ func transformSRFeature(feature *geojson.Feature) *geojson.Feature {
 	properties["acquiredDate"] = adString
 	properties["fileFormat"] = "geotiff"
 	properties["sensorName"], _ = feature.Properties["satellite_id"].(string)
-	url := landsatIDToS3Path(id)
-	if url != "" {
-		bands := make(map[string]string)
-		bands["coastal"] = url + id + "_B1.TIF"
-		bands["blue"] = url + id + "_B2.TIF"
-		bands["green"] = url + id + "_B3.TIF"
-		bands["red"] = url + id + "_B4.TIF"
-		bands["nir"] = url + id + "_B5.TIF"
-		bands["swir1"] = url + id + "_B6.TIF"
-		bands["swir2"] = url + id + "_B7.TIF"
-		bands["panchromatic"] = url + id + "_B8.TIF"
-		bands["cirrus"] = url + id + "_B9.TIF"
-		bands["tirs1"] = url + id + "_B10.TIF"
-		bands["tirs2"] = url + id + "_B11.TIF"
-		properties["bands"] = bands
+
+	if isLandSatFeature(id) {
+		err := addLandsatS3BandsToProperties(id, &properties)
+		if err != nil {
+			util.LogAlert(context, err.Error())
+		}
 	}
+
+	if isSentinelFeature(id) {
+		properties["fileFormat"] = "jpeg2000"
+		err := addSentinelS3BandsToProperties(id, &properties)
+		if err != nil {
+			util.LogAlert(context, err.Error())
+		}
+	}
+
 	result := geojson.NewFeature(feature.Geometry, id, properties)
 	result.Bbox = result.ForceBbox()
 	return result

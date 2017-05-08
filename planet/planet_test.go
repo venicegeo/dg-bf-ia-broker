@@ -156,3 +156,16 @@ func TestGetMetadataBadKey(t *testing.T) {
 		assert.Equal(t, 401, httpErr.Status, "Expected error 401 but got %v", httpErr.Status)
 	}
 }
+
+func TestGetMetadataSentinel(t *testing.T) {
+	planetServer, tidesServer, _ := createTestFixtures()
+	context := makeTestingContext(planetServer, tidesServer)
+
+	options := MetadataOptions{
+		ID:       "S2A_MSIL1C_20160513T183921_N0204_R070_T11SKD_20160513T185132",
+		ItemType: "Sentinel2L1C",
+	}
+
+	_, err := GetMetadata(options, &context)
+	assert.Nil(t, err, "Expected request to succeed; received: %v", err)
+}
