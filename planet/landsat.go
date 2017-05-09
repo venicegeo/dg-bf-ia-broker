@@ -9,7 +9,7 @@ import (
 
 // To date LandSat IDs come back in the form LC80060522017107LGN00
 // but this could obviously change without notice
-var landSatIDPattern = regexp.MustCompile("LC([0-9]{3})([0-9]{3}).*")
+var landSatIDPattern = regexp.MustCompile("LC8([0-9]{3})([0-9]{3}).*")
 
 // Inputs: first 3 digits of ID, next 3 digits of ID, ID, filename
 const landSatAWSURL = "https://landsat-pds.s3.amazonaws.com/L8/%s/%s/%s/%s"
