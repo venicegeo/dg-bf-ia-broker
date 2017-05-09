@@ -39,7 +39,7 @@ func TestAddLandSatBands(t *testing.T) {
 	for band, suffix := range landSatBandsSuffixes {
 		url, found := bandsMap[band]
 		assert.True(t, found, "missing band: "+band)
-		assert.Contains(t, url, "/800/605/", "URL does not contain correct AWS path")
+		assert.Contains(t, url, "/006/052/", "URL does not contain correct AWS path")
 		assert.Contains(t, url, goodLandSatID)
 		assert.True(t, strings.HasSuffix(url, suffix), "wrong suffix for band")
 	}
