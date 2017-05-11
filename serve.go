@@ -17,9 +17,11 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
+	"github.com/venicegeo/bf-ia-broker/landsat"
 	"github.com/venicegeo/bf-ia-broker/planet"
 	"github.com/venicegeo/bf-ia-broker/util"
 )
@@ -49,6 +51,8 @@ func serve() {
 	// 		fmt.Fprintf(writer, "Command undefined. \n")
 	// 	}
 	// })
+
+	go landsat.UpdateSceneMapOnTicker(30*time.Minute, context)
 	launchServer(portStr, router)
 }
 

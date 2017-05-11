@@ -15,6 +15,8 @@ import (
 const defaultLandSatHost = "http://landsat-pds.s3.amazonaws.com"
 
 var sceneMap = map[string]string{}
+
+// SceneMapIsReady contains a flag of whether the scene map has been loaded yet
 var SceneMapIsReady = false
 
 // UpdateSceneMap updates the global scene map from a remote source
