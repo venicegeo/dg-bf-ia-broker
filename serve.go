@@ -24,6 +24,11 @@ import (
 	"github.com/venicegeo/bf-ia-broker/util"
 )
 
+var launchServer = func(portStr string, router *mux.Router) {
+	http.Handle("/", router)
+	log.Fatal(http.ListenAndServe(portStr, nil))
+}
+
 func serve() {
 	portStr := ":8080"
 	router := mux.NewRouter()
@@ -44,9 +49,7 @@ func serve() {
 	// 		fmt.Fprintf(writer, "Command undefined. \n")
 	// 	}
 	// })
-	http.Handle("/", router)
-
-	log.Fatal(http.ListenAndServe(portStr, nil))
+	launchServer(portStr, router)
 }
 
 var serveCmd = &cobra.Command{

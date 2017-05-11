@@ -2,17 +2,9 @@ package planet
 
 import (
 	"errors"
-	"fmt"
-	"regexp"
-	"strings"
+
+	"github.com/venicegeo/bf-ia-broker/landsat"
 )
-
-// To date LandSat IDs come back in the form LC80060522017107LGN00
-// but this could obviously change without notice
-var landSatIDPattern = regexp.MustCompile("LC8([0-9]{3})([0-9]{3}).*")
-
-// Inputs: first 3 digits of ID, next 3 digits of ID, ID, filename
-const landSatAWSURL = "https://landsat-pds.s3.amazonaws.com/L8/%s/%s/%s/%s"
 
 var landSatBandsSuffixes = map[string]string{
 	"coastal":      "_B1.TIF",
@@ -28,25 +20,19 @@ var landSatBandsSuffixes = map[string]string{
 	"tirs2":        "_B11.TIF",
 }
 
-func isLandSatFeature(id string) bool {
-	return strings.HasPrefix(id, "LC8")
-}
-
 func addLandsatS3BandsToProperties(landSatID string, properties *map[string]interface{}) error {
-	if !isLandSatFeature(landSatID) {
-		return nil // Not a LandSat product
+	if !landsat.IsValidLandSatID(landSatID) {
+		return errors.New("Not a valid LandSat ID: " + landSatID)
 	}
 
-	if !landSatIDPattern.MatchString(landSatID) {
-		return errors.New("Product ID had 'LC8' prefix but did not match expected LandSat format")
+	awsFolder, err := landsat.GetSceneFolderURL(landSatID)
+	if err != nil {
+		return err
 	}
-
-	m := landSatIDPattern.FindStringSubmatch(landSatID)[1:]
 
 	bands := make(map[string]string)
 	for band, suffix := range landSatBandsSuffixes {
-		filename := landSatID + suffix
-		bands[band] = fmt.Sprintf(landSatAWSURL, m[0], m[1], landSatID, filename)
+		bands[band] = awsFolder + landSatID + suffix
 	}
 	(*properties)["bands"] = bands
 

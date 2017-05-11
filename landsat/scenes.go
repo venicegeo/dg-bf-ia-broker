@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"time"
 
 	"github.com/venicegeo/bf-ia-broker/util"
@@ -16,7 +15,7 @@ import (
 const defaultLandSatHost = "http://landsat-pds.s3.amazonaws.com"
 
 var sceneMap = map[string]string{}
-var sceneMapIsReady = false
+var SceneMapIsReady = false
 
 // UpdateSceneMap updates the global scene map from a remote source
 func UpdateSceneMap() (err error) {
@@ -62,7 +61,7 @@ doneReading:
 	}
 
 	sceneMap = newSceneMap
-	sceneMapIsReady = true
+	SceneMapIsReady = true
 	return nil
 }
 
@@ -102,14 +101,14 @@ func UpdateSceneMapOnTicker(d time.Duration, ctx util.LogContext) {
 // GetSceneFolderURL returns the AWS S3 URL at which the scene files for this
 // particular scene are available
 func GetSceneFolderURL(sceneID string) (string, error) {
-	if !isValidLandsatID(sceneID) {
+	if !IsValidLandSatID(sceneID) {
 		return "", fmt.Errorf("Invalid scene ID: %s", sceneID)
 	}
 
-	if isOldLandSatID(sceneID) {
+	if IsOldLandSatID(sceneID) {
 		return formatOldIDToURL(sceneID), nil
 	}
-	if !sceneMapIsReady {
+	if !SceneMapIsReady {
 		return "", errors.New("Scene map is not ready yet")
 	}
 	url, ok := sceneMap[sceneID]
@@ -117,24 +116,6 @@ func GetSceneFolderURL(sceneID string) (string, error) {
 		return "", errors.New("Scene not found with that ID")
 	}
 	return url, nil
-}
-
-// Old LandSat IDs come back in the form LC80060522017107LGN00
-var oldLandSatIDPattern = regexp.MustCompile("LC([0-9]{3})([0-9]{3}).*")
-
-func isOldLandSatID(sceneID string) bool {
-	return oldLandSatIDPattern.MatchString(sceneID)
-}
-
-// Reference https://landsat.usgs.gov/landsat-collections
-var c1LandSatIDPattern = regexp.MustCompile("LC[0-9]{2}_.*")
-
-func isC1LandSatID(sceneID string) bool {
-	return c1LandSatIDPattern.MatchString(sceneID)
-}
-
-func isValidLandsatID(sceneID string) bool {
-	return isOldLandSatID(sceneID) || isC1LandSatID(sceneID)
 }
 
 const oldLandSatAWSURL = "https://landsat-pds.s3.amazonaws.com/L8/%s/%s/%s/%s"

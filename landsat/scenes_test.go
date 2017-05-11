@@ -14,7 +14,7 @@ import (
 )
 
 const badLandSatID = "X_NOT_LANDSAT_X"
-const oldLandSatID = "LC123456890"
+const oldLandSatID = "LC8123456890"
 const newLandSatID = "LC08_L1TP_012029_20170213_20170415_01_T1"
 const newLandSatURL = "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/"
 const missingNewLandSatID = "LC08_L1TP_012029_20180213_20170415_01_T1"
