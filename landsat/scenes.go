@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/venicegeo/bf-ia-broker/util"
@@ -53,6 +54,8 @@ doneReading:
 		case nil:
 			id := record[0]
 			url := record[len(record)-1]
+			lastSlash := strings.LastIndex(url, "/")
+			url = url[:lastSlash+1]
 			newSceneMap[id] = url
 		case io.EOF:
 			break doneReading
