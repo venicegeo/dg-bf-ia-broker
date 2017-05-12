@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -16,7 +15,7 @@ import (
 const badLandSatID = "X_NOT_LANDSAT_X"
 const oldLandSatID = "LC8123456890"
 const newLandSatID = "LC08_L1TP_012029_20170213_20170415_01_T1"
-const newLandSatURL = "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/"
+const newLandSatURL = "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/index.html"
 const missingNewLandSatID = "LC08_L1TP_012029_20180213_20170415_01_T1"
 
 var sampleSceneMapCSV = []byte(newLandSatID +
@@ -64,8 +63,7 @@ func TestGetSceneFolderURL_NewSceneID(t *testing.T) {
 	UpdateSceneMap()
 	url, err := GetSceneFolderURL(newLandSatID)
 	assert.Nil(t, err, "%v", err)
-	assert.Equal(t, newLandSatURL, url)
-	assert.True(t, strings.HasSuffix(url, "/"), "Expected a folder URL, got %s", url)
+	assert.Equal(t, "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/", url)
 }
 
 func TestUpdateSceneMapAsync_Success(t *testing.T) {
