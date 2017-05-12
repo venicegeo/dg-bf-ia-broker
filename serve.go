@@ -17,12 +17,19 @@ package main
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
+	"github.com/venicegeo/bf-ia-broker/landsat"
 	"github.com/venicegeo/bf-ia-broker/planet"
 	"github.com/venicegeo/bf-ia-broker/util"
 )
+
+var launchServer = func(portStr string, router *mux.Router) {
+	http.Handle("/", router)
+	log.Fatal(http.ListenAndServe(portStr, nil))
+}
 
 func serve() {
 	portStr := ":8080"
@@ -44,9 +51,9 @@ func serve() {
 	// 		fmt.Fprintf(writer, "Command undefined. \n")
 	// 	}
 	// })
-	http.Handle("/", router)
 
-	log.Fatal(http.ListenAndServe(portStr, nil))
+	go landsat.UpdateSceneMapOnTicker(30*time.Minute, context)
+	launchServer(portStr, router)
 }
 
 var serveCmd = &cobra.Command{

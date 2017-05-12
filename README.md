@@ -86,10 +86,6 @@ To run `bf-ia-broker`, run the `run-tests.sh` script in the repository. This
 will run the unit tests for `bf-ia-broker` and all its subpackages and print
 coverage summaries.
 
-> **Note:** The base `github.com/venicegeo/bf-ia-broker` package does not currently
-  have unit tests as it is just bootstrapping and setup, without much business logic.
-  It is however included in the test script for completeness.
-
 ### Using
 In [handlers.go](planet/handlers.go) there are some REST handlers.
 

@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/venicegeo/bf-ia-broker/landsat"
 	"github.com/venicegeo/bf-ia-broker/tides"
 	"github.com/venicegeo/bf-ia-broker/util"
 	"github.com/venicegeo/geojson-go/geojson"
@@ -422,7 +423,7 @@ func transformSRFeature(feature *geojson.Feature, context util.LogContext) *geoj
 	properties["fileFormat"] = "geotiff"
 	properties["sensorName"], _ = feature.Properties["satellite_id"].(string)
 
-	if isLandSatFeature(id) {
+	if landsat.IsValidLandSatID(id) {
 		err := addLandsatS3BandsToProperties(id, &properties)
 		if err != nil {
 			util.LogAlert(context, err.Error())
