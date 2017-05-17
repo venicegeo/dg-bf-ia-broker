@@ -52,8 +52,10 @@ doneReading:
 		record, readErr := csvReader.Read()
 		switch readErr {
 		case nil:
-			id := record[0]
+			// Second column contains scene ID; last column contains URL
+			id := record[1]
 			url := record[len(record)-1]
+			// Strip the "index.html" file name to just get the directory path
 			lastSlash := strings.LastIndex(url, "/")
 			url = url[:lastSlash+1]
 			newSceneMap[id] = url
@@ -105,27 +107,24 @@ func UpdateSceneMapOnTicker(d time.Duration, ctx util.LogContext) {
 
 // GetSceneFolderURL returns the AWS S3 URL at which the scene files for this
 // particular scene are available
-func GetSceneFolderURL(sceneID string) (string, error) {
+func GetSceneFolderURL(sceneID string, dataType string) (string, error) {
 	if !IsValidLandSatID(sceneID) {
 		return "", fmt.Errorf("Invalid scene ID: %s", sceneID)
 	}
 
-	if IsOldLandSatID(sceneID) {
-		return formatOldIDToURL(sceneID), nil
+	if IsPreCollectionDataType(dataType) {
+		return formatPreCollectionIDToURL(sceneID), nil
 	}
+	if !IsCollection1DataType(dataType) {
+		return "", errors.New("Unknown LandSat data type: " + dataType)
+	}
+
 	if !SceneMapIsReady {
 		return "", errors.New("Scene map is not ready yet")
 	}
 	url, ok := sceneMap[sceneID]
 	if !ok {
-		return "", errors.New("Scene not found with that ID")
+		return "", errors.New("Scene not found with ID: " + sceneID)
 	}
 	return url, nil
-}
-
-const oldLandSatAWSURL = "https://landsat-pds.s3.amazonaws.com/L8/%s/%s/%s/%s"
-
-func formatOldIDToURL(sceneID string) string {
-	m := oldLandSatIDPattern.FindStringSubmatch(sceneID)[1:]
-	return fmt.Sprintf(oldLandSatAWSURL, m[0], m[1], sceneID, "")
 }

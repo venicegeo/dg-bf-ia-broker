@@ -10,17 +10,23 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/venicegeo/bf-ia-broker/util"
 )
 
-const badLandSatID = "X_NOT_LANDSAT_X"
-const oldLandSatID = "LC8123456890"
-const newLandSatID = "LC08_L1TP_012029_20170213_20170415_01_T1"
-const newLandSatURL = "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/index.html"
-const missingNewLandSatID = "LC08_L1TP_012029_20180213_20170415_01_T1"
+const (
+	badLandSatID     = "X_NOT_LANDSAT_X"
+	goodLandSatID    = "LC8123456890"
+	missingLandSatID = "LC8123456000"
+	l1tpLandSatURL   = "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/index.html"
+	l1tDataType      = "L1T"
+	l1gtDataType     = "L1GT"
+	l1tpDataType     = "L1TP"
+	badDataType      = "BOGUS"
+)
 
-var sampleSceneMapCSV = []byte(newLandSatID +
-	",LC81490392017101LGN00,2017-04-11 05:36:29.349932,0.0,L1TP,149,39,29.22165,72.41205,31.34742,74.84666," +
-	newLandSatURL)
+var sampleSceneMapCSV = []byte("LONG_ID_HERE," + goodLandSatID +
+	",2017-04-11 05:36:29.349932,0.0,L1TP,149,39,29.22165,72.41205,31.34742,74.84666," +
+	l1tpLandSatURL)
 
 type mockAWSHandler struct{}
 
@@ -39,42 +45,64 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetSceneFolderURL_BadIDs(t *testing.T) {
-	_, err := GetSceneFolderURL(badLandSatID)
+	_, err := GetSceneFolderURL(badLandSatID, l1tpDataType)
 	assert.NotNil(t, err, "Invalid LandSat ID did not cause an error")
 	assert.Contains(t, err.Error(), "Invalid scene ID")
 
-	_, err = GetSceneFolderURL(missingNewLandSatID)
+	_, err = GetSceneFolderURL(goodLandSatID, l1tpDataType)
 	assert.NotNil(t, err, "Scene map not ready did not cause an error")
 	assert.Contains(t, err.Error(), "not ready")
 
 	UpdateSceneMap()
-	_, err = GetSceneFolderURL(missingNewLandSatID)
+	_, err = GetSceneFolderURL(missingLandSatID, l1tpDataType)
 	assert.NotNil(t, err, "Missing scene ID did not cause an error")
 	assert.Contains(t, err.Error(), "not found")
 }
 
-func TestGetSceneFolderURL_OldSceneID(t *testing.T) {
-	url, err := GetSceneFolderURL(oldLandSatID)
-	assert.Nil(t, err, "%v", err)
-	assert.Equal(t, url, fmt.Sprintf(oldLandSatAWSURL, "123", "456", oldLandSatID, ""))
+func TestGetSceneFolderURL_BadDataType(t *testing.T) {
+	UpdateSceneMap()
+	_, err := GetSceneFolderURL(goodLandSatID, badDataType)
+	assert.NotNil(t, err, "Invalid scene data type did not cause an error")
+	assert.Contains(t, err.Error(), "Unknown LandSat data type")
+
+	_, err = GetSceneFolderURL(goodLandSatID, "")
+	assert.NotNil(t, err, "Invalid scene data type did not cause an error")
+	assert.Contains(t, err.Error(), "Unknown LandSat data type")
 }
 
-func TestGetSceneFolderURL_NewSceneID(t *testing.T) {
+func TestGetSceneFolderURL_L1TSceneID(t *testing.T) {
+	url, err := GetSceneFolderURL(goodLandSatID, l1tDataType)
+	assert.Nil(t, err, "%v", err)
+	assert.Equal(t, url, fmt.Sprintf(preCollectionLandSatAWSURL, "123", "456", goodLandSatID, ""))
+}
+
+func TestGetSceneFolderURL_L1TPSceneID(t *testing.T) {
 	UpdateSceneMap()
-	url, err := GetSceneFolderURL(newLandSatID)
+	url, err := GetSceneFolderURL(goodLandSatID, l1tpDataType)
 	assert.Nil(t, err, "%v", err)
 	assert.Equal(t, "https://s3-us-west-2.fakeamazonaws.dummy/thisiscorrect/", url)
 }
 
 func TestUpdateSceneMapAsync_Success(t *testing.T) {
 	done, errored := UpdateSceneMapAsync()
-	expireTimer := time.NewTimer(1 * time.Second)
 	select {
 	case <-done:
 		return
 	case err := <-errored:
 		assert.Fail(t, err.Error())
-	case <-expireTimer.C:
+	case <-time.After(1 * time.Second):
 		assert.Fail(t, "Timed out")
 	}
+}
+
+func TestUpdateSceneMapOnTicker(t *testing.T) {
+	ctx := &util.BasicLogContext{}
+	go UpdateSceneMapOnTicker(500*time.Millisecond, ctx)
+
+	<-time.After(100 * time.Millisecond)
+	assert.True(t, SceneMapIsReady, "Scene map not ready immediately after scene map ticker update")
+
+	SceneMapIsReady = false
+	<-time.After(600 * time.Millisecond)
+	assert.True(t, SceneMapIsReady, "Scene map not ready again after ticker should have gone off")
 }
