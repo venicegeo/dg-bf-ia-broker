@@ -20,12 +20,12 @@ var landSatBandsSuffixes = map[string]string{
 	"tirs2":        "_B11.TIF",
 }
 
-func addLandsatS3BandsToProperties(landSatID string, properties *map[string]interface{}) error {
+func addLandsatS3BandsToProperties(landSatID string, dataType string, properties *map[string]interface{}) error {
 	if !landsat.IsValidLandSatID(landSatID) {
 		return errors.New("Not a valid LandSat ID: " + landSatID)
 	}
 
-	awsFolder, err := landsat.GetSceneFolderURL(landSatID)
+	awsFolder, err := landsat.GetSceneFolderURL(landSatID, dataType)
 	if err != nil {
 		return err
 	}
