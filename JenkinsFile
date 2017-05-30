@@ -25,11 +25,11 @@ node {
         cd \$GOPATH/src/github.com/venicegeo/dg-bf-ia-broker
 
         go build
-        cp dg-bf-ia-broker ${root}/dg-bf-ia-broker
+        cp dg-bf-ia-broker ${root}/dg-bf-ia-broker.bin
         cd ${root}
 
         tar -cvzf dg-bf-ia-broker.tgz \
-            dg-bf-ia-broker 
+            dg-bf-ia-broker.bin
       """
     }
   }
