@@ -38,11 +38,6 @@ node {
     cfPush()
   }
 
-  stage('Reset') {
-    git([
-      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/dg-bf-ia-broker',
-      branch: "master"
-    ])
-  }
+  
 
 }
