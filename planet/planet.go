@@ -27,10 +27,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/venicegeo/bf-ia-broker/landsat"
-	"github.com/venicegeo/bf-ia-broker/tides"
-	"github.com/venicegeo/bf-ia-broker/util"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-bf-ia-broker/landsat"
+	"github.com/venicegeo/dg-bf-ia-broker/tides"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 var disablePermissionsCheck bool

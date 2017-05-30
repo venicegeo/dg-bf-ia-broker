@@ -21,9 +21,9 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
-	"github.com/venicegeo/bf-ia-broker/landsat"
-	"github.com/venicegeo/bf-ia-broker/planet"
-	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/venicegeo/dg-bf-ia-broker/landsat"
+	"github.com/venicegeo/dg-bf-ia-broker/planet"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
 )
 
 var launchServer = func(portStr string, router *mux.Router) {

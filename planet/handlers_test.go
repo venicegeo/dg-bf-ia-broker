@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 func TestDiscoverHandlerNoAPIKey(t *testing.T) {

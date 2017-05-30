@@ -10,7 +10,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
-	"github.com/venicegeo/bf-ia-broker/landsat"
+	"github.com/venicegeo/dg-bf-ia-broker/landsat"
 )
 
 const badLandSatID = "X_NOT_LANDSAT_X"

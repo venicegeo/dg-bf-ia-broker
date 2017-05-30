@@ -19,8 +19,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/venicegeo/bf-ia-broker/util"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 func makeTestingContext(planetServer *httptest.Server, tidesServer *httptest.Server) Context {

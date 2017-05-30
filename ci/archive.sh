@@ -18,10 +18,10 @@ go version
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install
 
-go get -v github.com/venicegeo/bf-ia-broker
+go get -v github.com/venicegeo/dg-bf-ia-broker
 
 # Planet package
-cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/planet
+cd $GOPATH/src/github.com/venicegeo/dg-bf-ia-broker/planet
 
 # lint
 #gometalinter \
@@ -41,11 +41,11 @@ cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/planet
 #wc -l $root/planet-lint.txt
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=$root/planet.cov github.com/venicegeo/bf-ia-broker/planet
+go test -v -coverprofile=$root/planet.cov github.com/venicegeo/dg-bf-ia-broker/planet
 go tool cover -func=$root/planet.cov -o $root/planet.cov.txt
 
 # Tides package
-cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/tides
+cd $GOPATH/src/github.com/venicegeo/dg-bf-ia-broker/tides
 
 # lint
 #gometalinter \
@@ -65,11 +65,11 @@ cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/tides
 #wc -l $root/tides-lint.txt
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=$root/tides.cov github.com/venicegeo/bf-ia-broker/tides
+go test -v -coverprofile=$root/tides.cov github.com/venicegeo/dg-bf-ia-broker/tides
 go tool cover -func=$root/tides.cov -o $root/tides.cov.txt
 
 # Util package
-cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/util
+cd $GOPATH/src/github.com/venicegeo/dg-bf-ia-broker/util
 
 # lint
 #gometalinter \
@@ -89,7 +89,7 @@ cd $GOPATH/src/github.com/venicegeo/bf-ia-broker/util
 #wc -l $root/util-lint.txt
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=$root/util.cov github.com/venicegeo/bf-ia-broker/util
+go test -v -coverprofile=$root/util.cov github.com/venicegeo/dg-bf-ia-broker/util
 go tool cover -func=$root/util.cov -o $root/util.cov.txt
 
 # gather some data about the repo

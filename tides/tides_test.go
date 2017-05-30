@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 func TestGetTides(t *testing.T) {

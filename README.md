@@ -29,7 +29,7 @@ Create the directory the respository must live in, then clone the repository the
 
     $ mkdir -p $GOPATH/src/github.com/venicegeo
     $ cd $GOPATH/src/github.com/venicegeo
-    $ git clone git@github.com:venicegeo/bf-ia-broker.git
+    $ git clone git@github.com:venicegeo/dg-bf-ia-broker.git
 
 ### 4. Install dependencies
 
@@ -53,7 +53,7 @@ rather than the default (which is the newest revision in Github).
 
 |Variable|Description|Default|
 |---------|-----------|------|
-|BF_TIDE_PREDICTION_URL|Location of the tide prediction service|https://bf-tideprediction.int.geointservices.io/tides |
+|BF_TIDE_PREDICTION_URL|Location of the tide prediction service
 |PL_API_URL|Location of Planet Labs API|https://api.planet.com/ |
 |PL_API_KEY|Planet Labs API Key|N/A|
 
@@ -64,7 +64,7 @@ rather than the default (which is the newest revision in Github).
 To build `bf-ia-broker`, run `go install` from the project directory. To build
 it from elsewhere, run:
 
-    $ go install github.com/venicegeo/bf-ia-broker
+    $ go install github.com/venicegeo/dg-bf-ia-broker
 
 This will build and place a statically-linked Go executable at
 `$GOPATH/bin/bf-ia-broker`.

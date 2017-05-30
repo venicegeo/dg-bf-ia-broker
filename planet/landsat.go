@@ -3,7 +3,7 @@ package planet
 import (
 	"errors"
 
-	"github.com/venicegeo/bf-ia-broker/landsat"
+	"github.com/venicegeo/dg-bf-ia-broker/landsat"
 )
 
 var landSatBandsSuffixes = map[string]string{

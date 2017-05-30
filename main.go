@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
 )
 
 func main() {

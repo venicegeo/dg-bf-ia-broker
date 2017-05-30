@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/gorilla/mux"
-	"github.com/venicegeo/bf-ia-broker/tides"
+	"github.com/venicegeo/dg-bf-ia-broker/tides"
 )
 
 const testingInvalidKey = "INVALID_KEY"

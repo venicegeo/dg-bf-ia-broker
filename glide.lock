@@ -15,7 +15,7 @@ imports:
   version: 69483b4bd14f5845b5a1e55bca19e954e827f1d0
   subpackages:
   - assert
-- name: github.com/venicegeo/geojson-go
+- name: github.com/venicegeo/dg-geojson-go
   version: 6e163c1e0f7948355597c7782b34aa7241d1d09f
   subpackages:
   - geojson

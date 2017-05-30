@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/venicegeo/bf-ia-broker/util"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
 )
 
 const (

@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/venicegeo/bf-ia-broker/util"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 // Context is the context for this operation

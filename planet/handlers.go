@@ -22,8 +22,8 @@ import (
 	"strconv"
 
 	"github.com/gorilla/mux"
-	"github.com/venicegeo/bf-ia-broker/util"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-bf-ia-broker/util"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 const noPlanetKey = "This operation requires a Planet Labs API key."

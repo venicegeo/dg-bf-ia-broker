@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/gorilla/mux"
-	"github.com/venicegeo/geojson-go/geojson"
+	"github.com/venicegeo/dg-geojson-go/geojson"
 )
 
 const testingSampleTidesResult = `{"locations":[{

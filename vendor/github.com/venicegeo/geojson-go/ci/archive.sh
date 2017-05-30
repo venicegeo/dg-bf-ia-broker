@@ -18,14 +18,14 @@ go version
 go get -u github.com/alecthomas/gometalinter
 gometalinter --install
 
-go get -v github.com/venicegeo/geojson-go/...
+go get -v github.com/venicegeo/dg-geojson-go/...
 
 # run unit tests w/ coverage collection
-go test -v -coverprofile=$root/geojson-go.cov github.com/venicegeo/geojson-go/geojson
+go test -v -coverprofile=$root/geojson-go.cov github.com/venicegeo/dg-geojson-go/geojson
 go tool cover -func=$root/geojson-go.cov -o $root/geojson-go.cov.txt
 
 # lint
-cd $GOPATH/src/github.com/venicegeo/geojson-go
+cd $GOPATH/src/github.com/venicegeo/dg-geojson-go
 
 #gometalinter \
 #--deadline=60s \
