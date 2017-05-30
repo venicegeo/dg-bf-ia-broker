@@ -38,7 +38,7 @@ node {
     cfPush() 
   }
 
-  stage('Cleanup' {
+  stage('Cleanup') {
     deletedDir()
   }
 }
