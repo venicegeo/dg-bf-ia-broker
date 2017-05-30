@@ -35,11 +35,6 @@ node {
   }
 
   stage('CI Deploy') {
-    cfPush {
-      ldapCredentialId = 'testing'
-    }
+    cfPush()
   }
-
-  
-
 }
