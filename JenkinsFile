@@ -13,7 +13,7 @@ node {
   }
 
   stage('Archive') {
-    deleteDir()
+//    deleteDir()
 //        go get github.com/venicegeo/dg-geojson-go
     withGolang {
       sh """
@@ -35,8 +35,10 @@ node {
   }
 
   stage('CI Deploy') {
-    cfPush {
-      ldapCredentialId = 'pcf_user'
-    }
+    cfPush() 
+  }
+
+  stage('Cleanup' {
+    deletedDir()
   }
 }
