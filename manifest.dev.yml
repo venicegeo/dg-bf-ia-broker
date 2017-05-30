@@ -1,8 +1,8 @@
 applications:
 - name: dg-bf-ia-broker
   host: dg-bf-ia-broker
+  buildpack: https://github.com/cloudfoundry/binary-buildpack.git
   command: chmod 755 ./dg-bf-ia-broker.bin && ./dg-bf-ia-broker.bin serve
-  buildpack: binary_buildpack
   memory: 256M
   disk_quota: 256M
   instances: 1
