@@ -1,8 +1,7 @@
 applications:
-- name: bf-ia-broker
-  host: bf-ia-broker
-  domain: dev.geointservices.io
-  command: chmod 755 ./bf-ia-broker.bin && ./bf-ia-broker.bin serve
+- name: dg-bf-ia-broker
+  host: dg-bf-ia-broker
+  command: chmod 755 ./dg-bf-ia-broker.bin && ./dg-bf-ia-broker.bin serve
   buildpack: binary_buildpack
   memory: 256M
   disk_quota: 256M
