@@ -35,6 +35,8 @@ node {
   }
 
   stage('CI Deploy') {
-    cfPush()
+    cfPush {
+      ldapCredentialId = pcf_user
+    }
   }
 }
