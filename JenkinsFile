@@ -39,6 +39,6 @@ node {
   }
 
   stage('Cleanup') {
-    deletedDir()
+    deleteDir()
   }
 }
