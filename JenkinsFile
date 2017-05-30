@@ -1,5 +1,6 @@
 @Library('pipelib@master') _
 
+def THREADFIX_ID = env.THREADFIX_ID ? env.THREADFIX_ID : '115'
 
 node {
   def root = pwd()
@@ -12,30 +13,36 @@ node {
   }
 
   stage('Archive') {
+    deleteDir()
     withGolang {
       sh """
-        # install metalinter
-        go get -u github.com/alecthomas/gometalinter
-        gometalinter --install
+        go get github.com/venicegeo/dg-geojson-go
+        go get github.com/spf13/cobra
+        go get github.com/gorilla/mux
+        go get github.com/stretchr/testify
+        go get github.com/venicegeo/dg-bf-ia-broker
 
-        # build ourself, and go there
-        go  install github.com/venicegeo/dg-bf-ia-broker
         cd \$GOPATH/src/github.com/venicegeo/dg-bf-ia-broker
 
+        go build
+        cp dg-bf-ia-broker ${root}/dg-bf-ia-broker
         cd ${root}
 
-        cp \$GOPATH/bin/dg-bf-ia-broker ${root}/dg-bf-ia-broker
         tar -cvzf dg-bf-ia-broker.tgz \
-            dg-bf-ia-broker \
-            *.cov \
-            *.cov.txt \
-            glide.lock \
-            glide.yaml
+            dg-bf-ia-broker 
       """
     }
   }
+
   stage('CI Deploy') {
-       cfPush()
+    cfPush()
+  }
+
+  stage('Reset') {
+    git([
+      url: env.GIT_URL ? env.GIT_URL : 'https://github.com/venicegeo/dg-bf-ia-broker',
+      branch: "master"
+    ])
   }
 
 }
