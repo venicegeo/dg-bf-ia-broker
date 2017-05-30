@@ -14,9 +14,9 @@ node {
 
   stage('Archive') {
     deleteDir()
+//        go get github.com/venicegeo/dg-geojson-go
     withGolang {
       sh """
-//        go get github.com/venicegeo/dg-geojson-go
         go get github.com/spf13/cobra
         go get github.com/gorilla/mux
         go get github.com/stretchr/testify
