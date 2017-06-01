@@ -1,6 +1,6 @@
 # bf-ia-broker
 A broker for image archives in support of Beachfront. This component generally stands between a UI (e.g., bf-ui) and one or more imagery providers (e.g., Planet Labs).
-
+ 
 ## Development setup
 
 Go relies heavily on configuration by convention. These instructions will help
