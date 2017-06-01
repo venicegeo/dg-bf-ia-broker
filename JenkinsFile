@@ -36,6 +36,7 @@ node {
 
   stage('CI Deploy') {
     cfPush() 
+    cfBgDeploy()
   }
 
   stage('Cleanup') {
